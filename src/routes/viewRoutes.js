@@ -3,9 +3,12 @@ const router = express.Router();
 const { isAuthenticated } = require('../middleware/auth');
 const { query, queryOne } = require('../database/connection');
 
-// Home -> Dashboard
+// Home -> Dashboard (if authenticated) or Login
 router.get('/', (req, res) => {
-  res.redirect('/dashboard');
+  if (req.session && req.session.user) {
+    return res.redirect('/dashboard');
+  }
+  res.redirect('/login');
 });
 
 // Dashboard
