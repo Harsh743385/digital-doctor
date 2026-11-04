@@ -15,6 +15,7 @@ const adminFormRoutes = require('./src/routes/adminFormRoutes');
 const formRoutes = require('./src/routes/formRoutes');
 const nursingRoutes = require('./src/routes/nursingRoutes');
 const doctorRoutes = require('./src/routes/doctorRoutes');
+const pwaRoutes = require('./src/routes/pwaRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -74,6 +75,11 @@ app.use('/api/digital-nursing', nursingRoutes);
 // Mount Presco Digital Doctor on both standard route and API mirror
 app.use('/cms/ajax/doctor', doctorRoutes);
 app.use('/api/digital-doctor', doctorRoutes);
+
+// Mount Presco Tab Bedside PWA
+app.use('/pwa', pwaRoutes);
+app.get('/tab', (req, res) => res.redirect('/pwa/ipd'));
+app.get('/cms/tab', (req, res) => res.redirect('/pwa/ipd'));
 
 // Error template route
 app.use((req, res, next) => {

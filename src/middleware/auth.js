@@ -52,5 +52,6 @@ function requireRole(role) {
 
 module.exports = {
   isAuthenticated,
+  requireAuth: isAuthenticated,
   requireRole
 };
