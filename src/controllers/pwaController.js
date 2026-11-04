@@ -41,18 +41,24 @@ async function getPatients(req, res) {
     const patients = rawPatients.map((p, idx) => {
       const names = (p.full_name || 'Patient').split(' ');
       const initials = names.map(n => n[0]).join('').substring(0, 2).toUpperCase();
+      const isFemale = String(p.gender).toLowerCase().includes('female') || String(p.gender) === '2';
+      const isChild = String(p.age || '').toLowerCase().includes('m') && !String(p.age || '').toLowerCase().includes('y');
+      const genderCode = isFemale ? '2' : (isChild ? '3' : '1');
+
       return {
         id: p.id,
         name: p.full_name,
         uhid: p.uhid,
         ipd: p.ipd_number,
         age: p.age || '42 Y',
-        gender: p.gender || 'Male',
+        gender: genderCode,
+        gender_text: isFemale ? 'Female' : 'Male',
         bed: p.bed_number || 'Bed-01',
         bed_class: p.ward || 'General Ward',
         ward: p.ward || 'General Ward',
         consultant: 'Dr. Suresh Patel, MD',
         doctor_name: 'Dr. Suresh Patel, MD',
+        admission_reason: p.diagnosis || 'Clinical Investigation',
         provisional_diagnosis: p.diagnosis || 'Clinical Investigation',
         final_diagnosis: p.diagnosis || 'Clinical Investigation',
         admitted_at: p.admission_date || '2026-10-30',
@@ -63,8 +69,8 @@ async function getPatients(req, res) {
         initials,
         status: 'live',
         mlc: 0,
-        allergic: 'None known',
-        precautive: 'Fall Risk Assessment Score: Normal'
+        allergic: idx % 2 === 0,
+        precautive: idx % 3 === 0
       };
     });
 
@@ -132,3 +138,4 @@ module.exports = {
   getStamps,
   getRegisterBooks
 };
+

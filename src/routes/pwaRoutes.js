@@ -16,3 +16,4 @@ router.get('/api/stamps', pwaController.getStamps);
 router.get('/api/register-books', pwaController.getRegisterBooks);
 
 module.exports = router;
+

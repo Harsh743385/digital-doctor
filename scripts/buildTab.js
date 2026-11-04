@@ -26,3 +26,4 @@ if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 const targetPath = path.join(outDir, 'tab.ejs');
 fs.writeFileSync(targetPath, html, 'utf8');
 console.log('views/pwa/tab.ejs generated successfully! Size:', html.length);
+
