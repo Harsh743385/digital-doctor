@@ -1,7 +1,16 @@
 const path = require('path');
 const fs = require('fs');
-const sanitizeHtml = require('sanitize-html');
 const { query, queryOne, run } = require('../database/connection');
+
+// Safe, zero-dependency HTML sanitizer (XSS protection)
+function sanitizeHtml(str) {
+  if (typeof str !== 'string') return str;
+  return str
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+    .replace(/on\w+\s*=\s*(["'])?[^"'>]*\1?/gi, '')
+    .replace(/javascript:/gi, '');
+}
 
 function safeJson(val, fallback = {}) {
   if (typeof val === 'object' && val !== null) return val;
