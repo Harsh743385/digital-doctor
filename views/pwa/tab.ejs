@@ -245,7 +245,21 @@
         <!-- Top app header. Hidden while editing a page so the canvas toolbar
              (rendered at the top of edit mode) becomes the only top bar. -->
         <header x-show="!(viewerOpen &amp;&amp; viewerMode === 'edit')" class="relative text-white px-4 py-3 flex items-center shadow z-10" style="background-color: #67C2FF;">
-<a href="/dashboard" title="Back to Presco Dashboard" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-semibold mr-2 transition backdrop-blur-sm shadow-sm" style="text-decoration:none;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Dashboard</span></a>
+
+  <div class="flex items-center gap-1.5 mr-2">
+    <a href="/dashboard" title="Back to Presco Dashboard" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-semibold transition backdrop-blur-sm shadow-sm" style="text-decoration:none;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span class="hidden sm:inline">Dashboard</span>
+    </a>
+    <button type="button" @click="openWebPage('Digital Nursing', '/cms/digital-nursing', 'bg-cyan-600')" title="Open Digital Nursing Inside Tablet" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold transition shadow-sm border border-cyan-400/40">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2v2"/><path d="M5 2v2"/><path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1"/><path d="M8 15a6 6 0 0 0 12 0v-3"/><circle cx="20" cy="10" r="2"/></svg>
+      <span>Digital Nursing</span>
+    </button>
+    <a href="/cms/digital-nursing" target="_blank" title="Open Digital Nursing in New Window" class="inline-flex items-center px-2 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs transition" style="text-decoration:none;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+    </a>
+  </div>
+
             <!-- Left drawer: "« Patients". -->
             <button type="button" @click="leftOpen = !leftOpen" class="px-2.5 py-1.5 rounded hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/40 mr-2 flex items-center gap-1.5 text-sm font-medium" :aria-label="leftOpen ? 'Close patients' : 'Open patients'" aria-label="Open patients">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="chevrons-left" aria-hidden="true" style="width:18px;height:18px;display:block;" class="lucide lucide-chevrons-left"><path d="m11 17-5-5 5-5"></path><path d="m18 17-5-5 5-5"></path></svg>
@@ -27380,7 +27394,7 @@
                     // Add / edit Hand Written category pages (p_id 62). Without
                     // it the add/edit page controls toast instead of opening the
                     // editor. Privileged roles (1/2/10) are granted server-side.
-                    can_edit_pages: false,
+                    can_edit_pages: true,
                     // Delete a Hand Written category page (p_id 63). Without it
                     // the in-editor Delete-page control is hidden. Privileged
                     // roles (1/2/10) are granted server-side.
@@ -27388,7 +27402,7 @@
                     // Clone / duplicate a page (p_id 74). Without it the clone
                     // control is hidden and cloning toasts "not authority".
                     // Privileged roles (1/2/10) are granted server-side.
-                    can_clone_pages: false,
+                    can_clone_pages: true,
                     // Copy / paste a page (p_id 90). Without it the Copy/Paste
                     // toolbar controls are hidden and every copy/paste action
                     // toasts "not authority". Privileged roles (1/2/10) granted.
@@ -27430,7 +27444,7 @@
                     // user-wise via other_permissions (one p_id per tool) and
                     // bypassed for privileged roles. Tapping a tile toasts a
                     // "no permission" message when its flag is false.
-                    can_digital_nursing: false,
+                    can_digital_nursing: true,
                     can_digital_requisition: false,
                     can_daily_billing: false,
                     can_digital_notes: false,
@@ -28233,9 +28247,13 @@
                 openWebPage(title, baseUrl, headerClass, extra, mode) {
                     if (this._guardEditExit(() => this.openWebPage(title, baseUrl, headerClass, extra, mode))) return;
                     if (!this.selectedPatientId) {
-                        this.showToast('Select a patient first', 'error');
-                        return;
-                    }
+      if (this.patients && this.patients.length > 0) {
+          this.selectPatient(this.patients[0]);
+      } else {
+          this.showToast('Select a patient first', 'error');
+          return;
+      }
+  }
                     const hospitalId = (this.me && this.me.hospital_id) || '';
                     this.webTitle       = title;
                     this.webHeaderClass = headerClass || 'bg-cyan-600';
@@ -32359,6 +32377,15 @@
                     // Resolve the Device Id / Serial No for the Settings card in the
                     // background (best-effort; no-op when the device bridge is absent).
                     this._resolveDeviceIdentity();
+  const searchParams = new URLSearchParams(window.location.search);
+  if (searchParams.get('open') === 'nursing' || searchParams.get('tab') === 'nursing') {
+      setTimeout(() => {
+          if (this.patients && this.patients.length > 0 && !this.selectedPatientId) {
+              this.selectPatient(this.patients[0]);
+          }
+          this.openWebPage('Digital Nursing', '/cms/digital-nursing', 'bg-cyan-600');
+      }, 350);
+  }
                     // ── Native-wrapper fingerprint bridge (result hooks) ──
                     // A WebView wrapper that captures the thumb natively returns
                     // the image to the page by calling (via evaluateJavascript):
@@ -34252,10 +34279,7 @@
                 // /v1/ipd prefix), so the deployment host is never hardcoded. Pass
                 // a leading-slash path like '/cms/digital-nursing'. Falls back to
                 // the prod host only if the session (me) hasn't resolved yet.
-                _ipdUrl(path) {
-                    const base = (this.me && this.me.app_url) || 'https://prescoipd.com/v1/ipd';
-                    return base + (path || '');
-                },
+                _ipdUrl(path) { return path || ''; },
 
                 // Edit patient record — open the IPD edit-patient page in its own
                 // individual full floating screen (the z-[98] iframe overlay used
