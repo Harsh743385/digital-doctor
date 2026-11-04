@@ -25,14 +25,10 @@ app.set('views', path.join(__dirname, 'views'));
 
 // Core middleware
 app.use((req, res, next) => {
-  // Restore original request URL if Vercel serverless rewrote it to /server.js
-  const forwardedUri = req.headers['x-forwarded-uri'];
-  if (forwardedUri && forwardedUri !== '/server.js' && forwardedUri !== '/server.js/') {
-    req.url = forwardedUri;
-  } else if (req.url === '/server.js' || req.url === '/server.js/') {
-    req.url = '/';
-  } else if (req.url.startsWith('/server.js/')) {
-    req.url = req.url.replace('/server.js', '') || '/';
+  // Normalize Vercel serverless rewritten URL path via __path query parameter
+  if (req.query && req.query.__path !== undefined) {
+    req.url = '/' + req.query.__path;
+    delete req.query.__path;
   }
   req.originalUrl = req.url;
   next();
