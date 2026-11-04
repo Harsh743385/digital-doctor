@@ -87,8 +87,10 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Auto-save SQLite database periodically
-startAutoSave(5000);
+// Auto-save SQLite database periodically (only in persistent server environments)
+if (!process.env.VERCEL) {
+  startAutoSave(5000);
+}
 
 if (require.main === module) {
   app.listen(PORT, () => {

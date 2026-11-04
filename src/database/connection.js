@@ -2,7 +2,9 @@ const path = require('path');
 const fs = require('fs');
 const initSqlJs = require('sql.js');
 
-const DB_PATH = path.join(__dirname, '../../data/presco.db');
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NOW_REGION);
+const LOCAL_DB_PATH = path.join(__dirname, '../../data/presco.db');
+const DB_PATH = isServerless ? path.join('/tmp', 'presco.db') : LOCAL_DB_PATH;
 let db = null;
 let SQL = null;
 
@@ -11,18 +13,62 @@ async function getDatabase() {
 
   const dataDir = path.dirname(DB_PATH);
   if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
+    try {
+      fs.mkdirSync(dataDir, { recursive: true });
+    } catch (e) {
+      // Ignored in read-only environment
+    }
   }
 
   if (!SQL) {
     SQL = await initSqlJs();
   }
 
+  // If in serverless and /tmp/presco.db does not exist, copy from bundled db if available
+  if (isServerless && !fs.existsSync(DB_PATH)) {
+    if (fs.existsSync(LOCAL_DB_PATH)) {
+      try {
+        fs.copyFileSync(LOCAL_DB_PATH, DB_PATH);
+      } catch (e) {
+        console.warn('Could not copy bundled DB to /tmp:', e.message);
+      }
+    }
+  }
+
   if (fs.existsSync(DB_PATH)) {
-    const fileBuffer = fs.readFileSync(DB_PATH);
-    db = new SQL.Database(fileBuffer);
+    try {
+      const fileBuffer = fs.readFileSync(DB_PATH);
+      db = new SQL.Database(fileBuffer);
+    } catch (e) {
+      db = new SQL.Database();
+    }
+  } else if (fs.existsSync(LOCAL_DB_PATH)) {
+    try {
+      const fileBuffer = fs.readFileSync(LOCAL_DB_PATH);
+      db = new SQL.Database(fileBuffer);
+    } catch (e) {
+      db = new SQL.Database();
+    }
   } else {
     db = new SQL.Database();
+  }
+
+  // Ensure tables exist; if database was newly initialized, run setup migrations
+  try {
+    const check = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='users'");
+    if (!check || check.length === 0 || !check[0].values || check[0].values.length === 0) {
+      console.log('⚡ Initializing database schema...');
+      const migrate = require('./migrate');
+      const seed = require('./seed');
+      const migrateDoctor = require('./migrateDoctor');
+      const seedDoctor = require('./seedDoctor');
+      await migrate();
+      await seed();
+      await migrateDoctor();
+      await seedDoctor();
+    }
+  } catch (err) {
+    console.warn('Auto-schema check note:', err.message);
   }
 
   // Enable foreign keys and performance optimizations
@@ -54,17 +100,21 @@ function saveDatabase(sync = false) {
     const buffer = Buffer.from(data);
     isDirty = false;
     if (sync) {
-      fs.writeFileSync(DB_PATH, buffer);
+      try {
+        fs.writeFileSync(DB_PATH, buffer);
+      } catch (err) {
+        // Ignored on read-only cloud filesystem
+      }
     } else {
       if (isWriting) return;
       isWriting = true;
       fs.writeFile(DB_PATH, buffer, (err) => {
         isWriting = false;
-        if (err) console.error('Error saving SQLite database:', err);
+        if (err) console.warn('Could not write database:', err.message);
       });
     }
   } catch (err) {
-    console.error('saveDatabase error:', err);
+    console.warn('saveDatabase note:', err.message);
   }
 }
 
