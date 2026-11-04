@@ -24,6 +24,20 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // Core middleware
+app.use((req, res, next) => {
+  // Restore original request URL if Vercel serverless rewrote it to /server.js
+  const forwardedUri = req.headers['x-forwarded-uri'] || req.headers['x-matched-path'];
+  if (forwardedUri) {
+    req.url = forwardedUri;
+  } else if (req.url === '/server.js' || req.url === '/server.js/') {
+    req.url = '/';
+  } else if (req.url.startsWith('/server.js/')) {
+    req.url = req.url.replace('/server.js', '') || '/';
+  }
+  req.originalUrl = req.url;
+  next();
+});
+
 app.use(cors());
 app.use(compression());
 app.use(morgan('dev'));
@@ -48,6 +62,11 @@ app.use((req, res, next) => {
   res.locals.csrfToken = 'GsMZ089OL6REykHKtondnN9gl3xXeq4H7fqUUC3c';
   res.locals.currentPath = req.path;
   next();
+});
+
+// Vercel serverless entrypoint redirect
+app.get('/server.js', (req, res) => {
+  res.redirect('/dashboard');
 });
 
 // Mount Routes
