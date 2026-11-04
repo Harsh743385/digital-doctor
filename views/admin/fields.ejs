@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+</head>
+<body>
+  <%- include('../partials/navbar') %>
+
+  <div class="app-container">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+      <div>
+        <h2 style="font-size: 24px; margin: 0;">Clinical Field Master</h2>
+        <div style="color: var(--grey-500); font-size: 13px;">Manage reusable standardized data fields across all clinical forms and assessment sheets.</div>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-soft" onclick="openCategoriesModal()">
+          <i class="fas fa-tags mr-1"></i> Categories
+        </button>
+        <button class="btn btn-teal" onclick="openCreateFieldModal()">
+          <i class="fas fa-plus mr-1"></i> New Field
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="presco-card mb-4">
+      <div class="p-3">
+        <div class="row align-items-center">
+          <div class="col-md-4 mb-2 mb-md-0">
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <span class="input-group-text bg-white border-right-0"><i class="fas fa-search text-muted"></i></span>
+              </div>
+              <input type="text" id="filterSearch" class="form-control border-left-0" placeholder="Search by field label or name...">
+            </div>
+          </div>
+          <div class="col-md-3 col-6 mb-2 mb-md-0">
+            <select id="filterCategory" class="form-control">
+              <option value="">All Categories</option>
+              <% categories.forEach(c => { %>
+                <option value="<%= c.id %>"><%= c.name %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="col-md-3 col-6 mb-2 mb-md-0">
+            <select id="filterType" class="form-control">
+              <option value="">All 15 Field Types</option>
+              <option value="text">Single Line Text</option>
+              <option value="textarea">Textarea</option>
+              <option value="number">Number</option>
+              <option value="email">Email</option>
+              <option value="phone">Phone</option>
+              <option value="date">Date</option>
+              <option value="time">Time</option>
+              <option value="datetime">Datetime</option>
+              <option value="dropdown">Dropdown Select</option>
+              <option value="radio">Radio Buttons</option>
+              <option value="checkbox">Checkbox Group</option>
+              <option value="multiselect">Multi-Select</option>
+              <option value="file">File Attachment</option>
+              <option value="image">Image / Signature</option>
+              <option value="boolean">Boolean Switch</option>
+            </select>
+          </div>
+          <div class="col-md-2 text-md-right">
+            <button class="btn btn-soft btn-block" onclick="resetFilters()">
+              <i class="fas fa-redo-alt mr-1"></i> Reset
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fields Table Card -->
+    <div class="presco-card">
+      <div class="presco-card-header">
+        <h4>Fields Inventory <span id="fieldsCountBadge" class="badge badge-light font-weight-bold ml-1">0</span></h4>
+        <div class="text-muted" style="font-size: 12px;">Standardized clinical tokens</div>
+      </div>
+      <div class="p-0 table-responsive">
+        <table class="presco-table" id="fieldsTable">
+          <thead>
+            <tr>
+              <th style="width: 28%;">Field Label &amp; Name</th>
+              <th>Type</th>
+              <th>Category</th>
+              <th>Required</th>
+              <th>Form Usage</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="fieldsTableBody">
+            <tr><td colspan="6" class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x text-teal"></i></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create / Edit Field Modal -->
+  <div class="modal fade" id="fieldModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title font-weight-bold" id="fieldModalTitle">Create Field</h5>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <form id="fieldForm" onsubmit="handleSaveField(event)">
+          <div class="modal-body">
+            <input type="hidden" id="fieldId" name="id">
+
+            <div class="row">
+              <div class="col-md-6 form-group">
+                <label class="form-label">Field Label <span class="req">*</span></label>
+                <input type="text" id="fieldLabel" name="label" class="form-control" placeholder="e.g. Systolic Blood Pressure" required>
+              </div>
+              <div class="col-md-6 form-group">
+                <label class="form-label">System Variable Name <span class="req">*</span> <span class="meta-hint">(snake_case)</span></label>
+                <input type="text" id="fieldName" name="name" class="form-control" placeholder="e.g. bp_systolic" required>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 form-group">
+                <label class="form-label">Field Type <span class="req">*</span></label>
+                <select id="fieldType" name="field_type" class="form-control" required onchange="handleFieldTypeChange()">
+                  <optgroup label="Basic Input">
+                    <option value="text">Single Line Text</option>
+                    <option value="textarea">Multi-line Text Area</option>
+                    <option value="number">Numeric Value</option>
+                  </optgroup>
+                  <optgroup label="Contact">
+                    <option value="email">Email Address</option>
+                    <option value="phone">Phone Number</option>
+                  </optgroup>
+                  <optgroup label="Date &amp; Time">
+                    <option value="date">Date Picker</option>
+                    <option value="time">Time Picker</option>
+                    <option value="datetime">Date &amp; Time</option>
+                  </optgroup>
+                  <optgroup label="Choices">
+                    <option value="dropdown">Dropdown Select</option>
+                    <option value="radio">Radio Buttons</option>
+                    <option value="checkbox">Checkboxes (Multiple)</option>
+                    <option value="multiselect">Multi-Select Dropdown</option>
+                    <option value="boolean">Yes/No Switch (Boolean)</option>
+                  </optgroup>
+                  <optgroup label="Media">
+                    <option value="file">File Attachment</option>
+                    <option value="image">Image / Signature</option>
+                  </optgroup>
+                </select>
+              </div>
+
+              <div class="col-md-6 form-group">
+                <label class="form-label">Category</label>
+                <select id="fieldCategory" name="category_id" class="form-control">
+                  <option value="">Uncategorized</option>
+                  <% categories.forEach(c => { %>
+                    <option value="<%= c.id %>"><%= c.name %></option>
+                  <% }) %>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Description / Instructions</label>
+              <textarea id="fieldDescription" name="description" class="form-control" rows="2" placeholder="Helpful tooltip or instructions for clinicians..."></textarea>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 form-group">
+                <label class="form-label">Placeholder Text</label>
+                <input type="text" id="fieldPlaceholder" name="placeholder" class="form-control" placeholder="Placeholder example">
+              </div>
+              <div class="col-md-6 form-group">
+                <label class="form-label">Default Value</label>
+                <input type="text" id="fieldDefaultValue" name="default_value" class="form-control" placeholder="Pre-filled default">
+              </div>
+            </div>
+
+            <!-- Options Box for choice fields -->
+            <div id="optionsGroup" class="p-3 mb-3" style="background:var(--grey-50);border-radius:10px;border:1px solid var(--grey-200);display:none;">
+              <label class="form-label font-weight-bold mb-1">Choice Options <span class="meta-hint">(One per line or comma-separated)</span></label>
+              <textarea id="fieldOptions" name="options" class="form-control" rows="4" placeholder="Option 1&#10;Option 2&#10;Option 3"></textarea>
+              <small class="text-muted">You can enter values in format: <code>Value:Label</code> or plain names.</small>
+            </div>
+
+            <!-- Validation Rules Box -->
+            <div class="row">
+              <div class="col-md-3 form-group" id="minValCol">
+                <label class="form-label">Min Value</label>
+                <input type="number" step="any" id="fieldMinVal" name="min_value" class="form-control">
+              </div>
+              <div class="col-md-3 form-group" id="maxValCol">
+                <label class="form-label">Max Value</label>
+                <input type="number" step="any" id="fieldMaxVal" name="max_value" class="form-control">
+              </div>
+              <div class="col-md-3 form-group" id="minLenCol">
+                <label class="form-label">Min Length</label>
+                <input type="number" id="fieldMinLen" name="min_length" class="form-control">
+              </div>
+              <div class="col-md-3 form-group" id="maxLenCol">
+                <label class="form-label">Max Length</label>
+                <input type="number" id="fieldMaxLen" name="max_length" class="form-control">
+              </div>
+            </div>
+
+            <div class="form-check mt-2">
+              <input type="checkbox" id="fieldIsRequired" name="is_required" class="form-check-input" value="1">
+              <label class="form-check-label font-weight-bold" for="fieldIsRequired">Mandatory / Required Field by Default</label>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-soft" data-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-teal">
+              <i class="fas fa-save mr-1"></i> Save Field
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Categories Management Modal -->
+  <div class="modal fade" id="categoriesModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title font-weight-bold">Field Categories</h5>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="newCategoryForm" onsubmit="handleCreateCategory(event)" class="mb-4">
+            <div class="input-group">
+              <input type="text" id="newCatName" class="form-control" placeholder="New Category Name..." required>
+              <div class="input-group-append">
+                <button class="btn btn-teal" type="submit"><i class="fas fa-plus mr-1"></i> Add</button>
+              </div>
+            </div>
+          </form>
+
+          <div id="categoriesList" class="list-group">
+            <div class="text-center p-3"><i class="fas fa-spinner fa-spin"></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Field Preview Modal -->
+  <div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title font-weight-bold">Field Live Preview</h5>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body" id="previewBody">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-soft" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('../partials/footer') %>
+
+  <script>
+    let fieldsData = [];
+
+    const TYPE_ICONS = {
+      text: 'fa-font', textarea: 'fa-paragraph', number: 'fa-hashtag',
+      email: 'fa-envelope', phone: 'fa-phone', date: 'fa-calendar',
+      time: 'fa-clock', datetime: 'fa-calendar-alt', dropdown: 'fa-caret-square-down',
+      radio: 'fa-dot-circle', checkbox: 'fa-check-square', multiselect: 'fa-list-ul',
+      file: 'fa-file-upload', image: 'fa-image', boolean: 'fa-toggle-on'
+    };
+
+    $(document).ready(function() {
+      loadFields();
+
+      $('#filterSearch, #filterCategory, #filterType').on('input change', function() {
+        applyClientFilters();
+      });
+
+      // Auto slugify name when typing label in create mode
+      $('#fieldLabel').on('input', function() {
+        if (!$('#fieldId').val()) {
+          const slug = $(this).val().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '');
+          $('#fieldName').val(slug);
+        }
+      });
+    });
+
+    function loadFields() {
+      $.getJSON('/api/admin/fields', function(res) {
+        if (res.success) {
+          fieldsData = res.data;
+          renderFieldsTable(fieldsData);
+        }
+      });
+    }
+
+    function renderFieldsTable(fields) {
+      $('#fieldsCountBadge').text(fields.length);
+      const tbody = $('#fieldsTableBody');
+      tbody.empty();
+
+      if (!fields || fields.length === 0) {
+        tbody.html('<tr><td colspan="6" class="text-center p-5 text-muted"><i class="fas fa-search fa-2x mb-2 opacity-50"></i><p>No fields found matching criteria.</p></td></tr>');
+        return;
+      }
+
+      fields.forEach(f => {
+        const icon = TYPE_ICONS[f.field_type] || 'fa-tag';
+        const tr = $(`
+          <tr>
+            <td>
+              <div style="font-weight:700;color:var(--grey-900);">${escapeHtml(f.label)}</div>
+              <div style="font-size:11px;color:var(--grey-500);font-family:monospace;">${escapeHtml(f.name)}</div>
+            </td>
+            <td>
+              <span class="ftype-tag"><i class="fas ${icon}"></i> ${f.field_type}</span>
+            </td>
+            <td>
+              <span class="badge-pill-tag category">${escapeHtml(f.category_name || 'Uncategorized')}</span>
+            </td>
+            <td>
+              ${f.is_required ? '<span class="text-danger font-weight-bold"><i class="fas fa-asterisk mr-1"></i>Yes</span>' : '<span class="text-muted">Optional</span>'}
+            </td>
+            <td>
+              <span class="badge badge-light font-weight-bold">${f.usage_count} form(s)</span>
+            </td>
+            <td class="text-right">
+              <button class="btn btn-soft btn-sm" onclick="previewField(${f.id})" title="Live Preview">
+                <i class="fas fa-eye"></i>
+              </button>
+              <button class="btn btn-soft btn-sm" onclick="editField(${f.id})" title="Edit">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn btn-soft btn-sm text-danger" onclick="deleteField(${f.id})" title="Delete">
+                <i class="fas fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `);
+        tbody.append(tr);
+      });
+    }
+
+    function applyClientFilters() {
+      const q = $('#filterSearch').val().toLowerCase().trim();
+      const cat = $('#filterCategory').val();
+      const type = $('#filterType').val();
+
+      const filtered = fieldsData.filter(f => {
+        const matchesQ = !q || f.label.toLowerCase().includes(q) || f.name.toLowerCase().includes(q);
+        const matchesCat = !cat || String(f.category_id) === String(cat);
+        const matchesType = !type || f.field_type === type;
+        return matchesQ && matchesCat && matchesType;
+      });
+
+      renderFieldsTable(filtered);
+    }
+
+    function resetFilters() {
+      $('#filterSearch').val('');
+      $('#filterCategory').val('');
+      $('#filterType').val('');
+      renderFieldsTable(fieldsData);
+    }
+
+    function handleFieldTypeChange() {
+      const type = $('#fieldType').val();
+      const choiceTypes = ['dropdown', 'radio', 'checkbox', 'multiselect'];
+      if (choiceTypes.includes(type)) {
+        $('#optionsGroup').slideDown(150);
+      } else {
+        $('#optionsGroup').slideUp(150);
+      }
+    }
+
+    function openCreateFieldModal() {
+      $('#fieldModalTitle').text('Create Standard Field');
+      $('#fieldForm')[0].reset();
+      $('#fieldId').val('');
+      $('#fieldName').prop('readonly', false);
+      handleFieldTypeChange();
+      $('#fieldModal').modal('show');
+    }
+
+    function editField(id) {
+      const f = fieldsData.find(item => item.id == id);
+      if (!f) return;
+
+      $('#fieldModalTitle').text('Edit Field: ' + f.label);
+      $('#fieldId').val(f.id);
+      $('#fieldName').val(f.name).prop('readonly', true);
+      $('#fieldLabel').val(f.label);
+      $('#fieldType').val(f.field_type);
+      $('#fieldCategory').val(f.category_id || '');
+      $('#fieldDescription').val(f.description || '');
+      $('#fieldPlaceholder').val(f.placeholder || '');
+      $('#fieldDefaultValue').val(f.default_value || '');
+      $('#fieldMinVal').val(f.min_value ?? '');
+      $('#fieldMaxVal').val(f.max_value ?? '');
+      $('#fieldMinLen').val(f.min_length ?? '');
+      $('#fieldMaxLen').val(f.max_length ?? '');
+      $('#fieldIsRequired').prop('checked', !!f.is_required);
+
+      if (f.options && Array.isArray(f.options)) {
+        const lines = f.options.map(o => o.value === o.label ? o.label : `${o.value}:${o.label}`);
+        $('#fieldOptions').val(lines.join('\n'));
+      } else {
+        $('#fieldOptions').val('');
+      }
+
+      handleFieldTypeChange();
+      $('#fieldModal').modal('show');
+    }
+
+    function handleSaveField(e) {
+      e.preventDefault();
+      const id = $('#fieldId').val();
+      const url = id ? `/api/admin/fields/${id}` : '/api/admin/fields';
+      const method = id ? 'PUT' : 'POST';
+
+      const payload = {
+        name: $('#fieldName').val(),
+        label: $('#fieldLabel').val(),
+        field_type: $('#fieldType').val(),
+        category_id: $('#fieldCategory').val() || null,
+        description: $('#fieldDescription').val(),
+        placeholder: $('#fieldPlaceholder').val(),
+        default_value: $('#fieldDefaultValue').val(),
+        min_value: $('#fieldMinVal').val(),
+        max_value: $('#fieldMaxVal').val(),
+        min_length: $('#fieldMinLen').val(),
+        max_length: $('#fieldMaxLen').val(),
+        is_required: $('#fieldIsRequired').is(':checked') ? 1 : 0,
+        options: $('#fieldOptions').val()
+      };
+
+      $.ajax({
+        url,
+        type: method,
+        contentType: 'application/json',
+        data: JSON.stringify(payload),
+        success: function(res) {
+          if (res.success) {
+            toastr.success(res.msg);
+            $('#fieldModal').modal('hide');
+            loadFields();
+          } else {
+            toastr.error(res.msg);
+          }
+        },
+        error: function(err) {
+          toastr.error(err.responseJSON?.msg || 'Error saving field');
+        }
+      });
+    }
+
+    function deleteField(id) {
+      Swal.fire({
+        title: 'Delete this field?',
+        text: 'If used in any dynamic forms, it will be safely deactivated.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Delete',
+        confirmButtonColor: '#E11D48'
+      }).then(res => {
+        if (res.isConfirmed) {
+          $.ajax({
+            url: `/api/admin/fields/${id}`,
+            type: 'DELETE',
+            success: function(r) {
+              toastr.success(r.msg);
+              loadFields();
+            }
+          });
+        }
+      });
+    }
+
+    function previewField(id) {
+      const f = fieldsData.find(item => item.id == id);
+      if (!f) return;
+
+      let controlHtml = '';
+      const reqStar = f.is_required ? '<span class="text-danger">*</span>' : '';
+
+      switch (f.field_type) {
+        case 'textarea':
+          controlHtml = `<textarea class="form-control" placeholder="${escapeHtml(f.placeholder || '')}">${escapeHtml(f.default_value || '')}</textarea>`;
+          break;
+        case 'number':
+          controlHtml = `<input type="number" class="form-control" placeholder="${escapeHtml(f.placeholder || '')}" value="${escapeHtml(f.default_value || '')}">`;
+          break;
+        case 'date':
+          controlHtml = `<input type="date" class="form-control" value="${escapeHtml(f.default_value || '')}">`;
+          break;
+        case 'time':
+          controlHtml = `<input type="time" class="form-control" value="${escapeHtml(f.default_value || '')}">`;
+          break;
+        case 'datetime':
+          controlHtml = `<input type="datetime-local" class="form-control">`;
+          break;
+        case 'dropdown':
+          const opts = (f.options || []).map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+          controlHtml = `<select class="form-control"><option value="">-- Choose Option --</option>${opts}</select>`;
+          break;
+        case 'radio':
+          controlHtml = (f.options || []).map(o => `
+            <div class="custom-control custom-radio">
+              <input type="radio" id="prev_rad_${o.value}" name="prev_rad" class="custom-control-input">
+              <label class="custom-control-label" for="prev_rad_${o.value}">${o.label}</label>
+            </div>
+          `).join('');
+          break;
+        case 'checkbox':
+          controlHtml = (f.options || []).map(o => `
+            <div class="custom-control custom-checkbox">
+              <input type="checkbox" id="prev_chk_${o.value}" class="custom-control-input">
+              <label class="custom-control-label" for="prev_chk_${o.value}">${o.label}</label>
+            </div>
+          `).join('');
+          break;
+        case 'boolean':
+          controlHtml = `
+            <div class="custom-control custom-switch">
+              <input type="checkbox" class="custom-control-input" id="prev_switch" ${f.default_value === 'true' ? 'checked' : ''}>
+              <label class="custom-control-label" for="prev_switch">Enable / Active</label>
+            </div>
+          `;
+          break;
+        case 'file':
+        case 'image':
+          controlHtml = `<input type="file" class="form-control-file">`;
+          break;
+        default:
+          controlHtml = `<input type="${f.field_type}" class="form-control" placeholder="${escapeHtml(f.placeholder || '')}" value="${escapeHtml(f.default_value || '')}">`;
+      }
+
+      $('#previewBody').html(`
+        <div class="p-3 border rounded">
+          <label class="form-label font-weight-bold">${escapeHtml(f.label)} ${reqStar}</label>
+          ${controlHtml}
+          ${f.description ? `<small class="form-text text-muted">${escapeHtml(f.description)}</small>` : ''}
+        </div>
+      `);
+
+      $('#previewModal').modal('show');
+    }
+
+    // ── Categories Modal ──
+    function openCategoriesModal() {
+      loadCategoriesList();
+      $('#categoriesModal').modal('show');
+    }
+
+    function loadCategoriesList() {
+      $.getJSON('/api/admin/field-categories', function(res) {
+        if (res.success) {
+          const list = $('#categoriesList').empty();
+          res.data.forEach(c => {
+            list.append(`
+              <div class="list-group-item d-flex align-items-center justify-content-between p-2">
+                <div>
+                  <b>${escapeHtml(c.name)}</b>
+                  <div style="font-size:11px;color:var(--grey-500);">${c.field_count} field(s)</div>
+                </div>
+                <button class="btn btn-sm text-danger" onclick="deleteCategory(${c.id})"><i class="fas fa-trash"></i></button>
+              </div>
+            `);
+          });
+        }
+      });
+    }
+
+    function handleCreateCategory(e) {
+      e.preventDefault();
+      const name = $('#newCatName').val().trim();
+      if (!name) return;
+
+      $.ajax({
+        url: '/api/admin/field-categories',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ name }),
+        success: function(res) {
+          toastr.success('Category added');
+          $('#newCatName').val('');
+          loadCategoriesList();
+        }
+      });
+    }
+
+    function deleteCategory(id) {
+      if (confirm('Delete this category? Fields will become uncategorized.')) {
+        $.ajax({
+          url: `/api/admin/field-categories/${id}`,
+          type: 'DELETE',
+          success: function() {
+            toastr.success('Category removed');
+            loadCategoriesList();
+          }
+        });
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+  </script>
+</body>
+</html>

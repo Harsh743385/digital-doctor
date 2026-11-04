@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+  <style>
+    .builder-layout {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+    .field-palette {
+      width: 320px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 76px;
+      max-height: calc(100vh - 96px);
+      overflow-y: auto;
+    }
+    .builder-canvas {
+      flex: 1;
+      min-width: 0;
+    }
+    .palette-item {
+      padding: 10px 12px;
+      background: #fff;
+      border: 1px solid var(--grey-200);
+      border-radius: var(--radius-sm);
+      margin-bottom: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.12s ease;
+      font-size: 13px;
+    }
+    .palette-item:hover {
+      border-color: var(--teal);
+      background: var(--teal-l);
+      color: var(--teal-d);
+      transform: translateX(3px);
+    }
+    .section-card {
+      background: #fff;
+      border: 1px solid var(--grey-200);
+      border-radius: var(--radius-lg);
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+      transition: border-color 0.15s ease;
+    }
+    .section-card.active-drop {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
+    }
+    .section-header {
+      padding: 14px 18px;
+      background: var(--grey-50);
+      border-bottom: 1px solid var(--grey-200);
+      border-top-left-radius: var(--radius-lg);
+      border-top-right-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .field-dropzone {
+      padding: 16px;
+      min-height: 80px;
+    }
+    .field-tile {
+      background: #fff;
+      border: 1px solid var(--grey-200);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      position: relative;
+      transition: all 0.15s ease;
+    }
+    .field-tile:hover {
+      border-color: var(--teal);
+      box-shadow: 0 3px 8px rgba(20, 184, 166, 0.15);
+    }
+    .col-btn-group .btn {
+      padding: 4px 10px;
+      font-size: 11px;
+    }
+    .col-btn-group .btn.active {
+      background: var(--teal);
+      color: #fff;
+      border-color: var(--teal);
+    }
+    .cond-rule-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #FEF3C7;
+      color: #92400E;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <%- include('../partials/navbar') %>
+
+  <!-- Top Builder Action Bar -->
+  <div style="background:#fff;border-bottom:1px solid var(--grey-200);padding:12px 24px;position:sticky;top:61px;z-index:1010;">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-3">
+        <a href="/admin/forms" class="btn btn-soft btn-sm"><i class="fas fa-arrow-left mr-1"></i> Back</a>
+        <div>
+          <div class="d-flex align-items-center gap-2">
+            <h3 style="font-size:18px;margin:0;"><%= form.name %></h3>
+            <span id="formStatusBadge" class="badge-pill-tag <%= form.status %>"><%= form.status %></span>
+            <span class="badge badge-light font-weight-bold">v<%= form.version %></span>
+          </div>
+          <div style="font-size:11.5px;color:var(--grey-500);">Slug: <code>/forms/<%= form.slug %></code></div>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        <div class="btn-group btn-group-sm">
+          <button type="button" class="btn btn-soft active" id="btnModeBuilder" onclick="switchMode('builder')">
+            <i class="fas fa-tools mr-1"></i> Builder
+          </button>
+          <button type="button" class="btn btn-soft" id="btnModePreview" onclick="switchMode('preview')">
+            <i class="fas fa-eye mr-1"></i> Interactive Preview
+          </button>
+        </div>
+
+        <a href="/forms/<%= form.slug %>" target="_blank" class="btn btn-soft btn-sm" title="Open Public URL">
+          <i class="fas fa-external-link-alt mr-1"></i> View Live
+        </a>
+
+        <button class="btn btn-teal btn-sm" onclick="publishForm()">
+          <i class="fas fa-cloud-upload-alt mr-1"></i> Publish Version
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-container">
+    <!-- BUILDER VIEW -->
+    <div id="viewBuilder" class="builder-layout">
+      <!-- Left: Field Palette -->
+      <div class="field-palette presco-card p-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h5 style="font-size:14px;margin:0;"><i class="fas fa-cubes text-teal mr-1"></i> Master Fields</h5>
+          <a href="/admin/fields" target="_blank" class="btn btn-sm text-teal p-0 font-weight-bold" style="font-size:11px;">+ New Master</a>
+        </div>
+        <p style="font-size:11.5px;color:var(--grey-500);margin-bottom:12px;">Click a field to add it to the active section.</p>
+
+        <input type="text" id="paletteSearch" class="form-control form-control-sm mb-3" placeholder="Filter fields by name...">
+
+        <div id="paletteList">
+          <div class="text-center p-3 text-muted"><i class="fas fa-spinner fa-spin"></i> Loading fields...</div>
+        </div>
+      </div>
+
+      <!-- Right: Builder Canvas -->
+      <div class="builder-canvas">
+        <div id="sectionsContainer">
+          <div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x text-teal"></i></div>
+        </div>
+
+        <button class="btn btn-soft-primary btn-block p-3" style="border: 2px dashed var(--teal-bd); border-radius: var(--radius-lg); font-size: 14px;" onclick="openAddSectionModal()">
+          <i class="fas fa-plus-circle mr-1"></i> Add Form Section
+        </button>
+      </div>
+    </div>
+
+    <!-- PREVIEW VIEW -->
+    <div id="viewPreview" style="display:none;">
+      <div class="presco-card mx-auto" style="max-width: 960px;">
+        <div class="presco-card-header">
+          <div>
+            <h3 style="font-size: 20px;"><%= form.name %></h3>
+            <p style="font-size: 13px; color: var(--grey-500); margin: 4px 0 0;"><%= form.description || '' %></p>
+          </div>
+          <span class="badge badge-warning">LIVE PREVIEW MODE</span>
+        </div>
+        <div class="presco-card-body" id="previewContainer">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Section Modal -->
+  <div class="modal fade" id="sectionModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title font-weight-bold" id="sectionModalTitle">Add Section</h5>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <form id="sectionForm" onsubmit="handleSaveSection(event)">
+          <div class="modal-body">
+            <input type="hidden" id="sectionId">
+            <div class="form-group">
+              <label class="form-label">Section Title <span class="req">*</span></label>
+              <input type="text" id="sectionTitle" class="form-control" placeholder="e.g. Vital Signs or Neurological Assessment" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Description / Subtitle</label>
+              <input type="text" id="sectionDesc" class="form-control" placeholder="Optional helper note for clinicians">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Default Grid Columns</label>
+              <select id="sectionColumns" class="form-control">
+                <option value="1">1 Column (Full Width)</option>
+                <option value="2" selected>2 Columns (Half Width)</option>
+                <option value="3">3 Columns (One Third Width)</option>
+                <option value="4">4 Columns (Quarter Width)</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-soft" data-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-teal">Save Section</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Configure Form Field Modal (Overrides & Conditional Rules) -->
+  <div class="modal fade" id="fieldConfigModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title font-weight-bold">Configure Form Field</h5>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <form id="fieldConfigForm" onsubmit="handleSaveFieldConfig(event)">
+          <div class="modal-body">
+            <input type="hidden" id="cfgFormFieldId">
+
+            <div class="row">
+              <div class="col-md-6 form-group">
+                <label class="form-label">Custom Label Override</label>
+                <input type="text" id="cfgLabel" class="form-control" placeholder="Override standard label for this form">
+              </div>
+              <div class="col-md-6 form-group">
+                <label class="form-label">Grid Column Span</label>
+                <select id="cfgColSpan" class="form-control">
+                  <option value="1">1 Column</option>
+                  <option value="2">2 Columns (Half or Full depending on section)</option>
+                  <option value="3">3 Columns</option>
+                  <option value="4">4 Columns (Full Width)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Placeholder Override</label>
+              <input type="text" id="cfgPlaceholder" class="form-control" placeholder="Custom placeholder hint">
+            </div>
+
+            <div class="form-check mb-4">
+              <input type="checkbox" id="cfgRequired" class="form-check-input" value="1">
+              <label class="form-check-label font-weight-bold" for="cfgRequired">Required / Mandatory in this form</label>
+            </div>
+
+            <!-- Conditional Display Rules -->
+            <div class="p-3" style="background:var(--grey-50);border-radius:10px;border:1px solid var(--grey-200);">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <label class="form-label font-weight-bold mb-0">
+                  <i class="fas fa-code-branch text-teal mr-1"></i> Conditional Visibility Rule
+                </label>
+                <small class="text-muted">Show/Hide this field dynamically based on other inputs</small>
+              </div>
+
+              <div class="row align-items-center">
+                <div class="col-md-3 mb-2">
+                  <select id="cfgRuleAction" class="form-control form-control-sm">
+                    <option value="show">Show field if</option>
+                    <option value="hide">Hide field if</option>
+                  </select>
+                </div>
+                <div class="col-md-4 mb-2">
+                  <select id="cfgRuleField" class="form-control form-control-sm">
+                    <option value="">-- Dependent Field --</option>
+                  </select>
+                </div>
+                <div class="col-md-2 mb-2">
+                  <select id="cfgRuleOp" class="form-control form-control-sm">
+                    <option value="==">equals (==)</option>
+                    <option value="!=">not equals (!=)</option>
+                    <option value=">">greater than (&gt;)</option>
+                    <option value="<">less than (&lt;)</option>
+                    <option value="contains">contains</option>
+                  </select>
+                </div>
+                <div class="col-md-3 mb-2">
+                  <input type="text" id="cfgRuleValue" class="form-control form-control-sm" placeholder="Trigger value (e.g. Y or 10)">
+                </div>
+              </div>
+              <small class="text-muted">Example: Show "vulnerability_reason" if "vulnerable" equals "Y".</small>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-soft" data-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-teal">Apply Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <%- include('../partials/footer') %>
+
+  <script>
+    const formId = <%= form.id %>;
+    let formData = null;
+    let allMasterFields = [];
+    let activeSectionId = null;
+
+    const TYPE_ICONS = {
+      text: 'fa-font', textarea: 'fa-paragraph', number: 'fa-hashtag',
+      email: 'fa-envelope', phone: 'fa-phone', date: 'fa-calendar',
+      time: 'fa-clock', datetime: 'fa-calendar-alt', dropdown: 'fa-caret-square-down',
+      radio: 'fa-dot-circle', checkbox: 'fa-check-square', multiselect: 'fa-list-ul',
+      file: 'fa-file-upload', image: 'fa-image', boolean: 'fa-toggle-on'
+    };
+
+    $(document).ready(function() {
+      loadFormData();
+      loadMasterFields();
+
+      $('#paletteSearch').on('input', function() {
+        const q = $(this).val().toLowerCase().trim();
+        $('.palette-item').each(function() {
+          const text = $(this).text().toLowerCase();
+          $(this).toggle(text.includes(q));
+        });
+      });
+    });
+
+    function loadFormData() {
+      $.getJSON(`/api/admin/forms/${formId}`, function(res) {
+        if (res.success) {
+          formData = res.data;
+          renderCanvas();
+        }
+      });
+    }
+
+    function loadMasterFields() {
+      $.getJSON('/api/admin/fields', function(res) {
+        if (res.success) {
+          allMasterFields = res.data;
+          renderPalette();
+        }
+      });
+    }
+
+    function renderPalette() {
+      const list = $('#paletteList').empty();
+      allMasterFields.forEach(f => {
+        const icon = TYPE_ICONS[f.field_type] || 'fa-tag';
+        const item = $(`
+          <div class="palette-item" onclick="quickAddField(${f.id})">
+            <div>
+              <div style="font-weight:600;"><i class="fas ${icon} text-teal mr-1"></i> ${escapeHtml(f.label)}</div>
+              <div style="font-size:10.5px;color:var(--grey-500);font-family:monospace;">${escapeHtml(f.name)}</div>
+            </div>
+            <i class="fas fa-plus text-muted"></i>
+          </div>
+        `);
+        list.append(item);
+      });
+    }
+
+    function renderCanvas() {
+      const container = $('#sectionsContainer').empty();
+      if (!formData || !formData.sections || formData.sections.length === 0) {
+        container.html('<div class="p-4 text-center text-muted">No sections yet. Click "Add Form Section" below.</div>');
+        return;
+      }
+
+      // Default active section to first section if null
+      if (!activeSectionId && formData.sections.length > 0) {
+        activeSectionId = formData.sections[0].id;
+      }
+
+      formData.sections.forEach(sec => {
+        const cols = sec.columns || 2;
+        const colClass = cols === 1 ? 'col-12' : (cols === 2 ? 'col-md-6' : (cols === 3 ? 'col-md-4' : 'col-md-3'));
+
+        const secCard = $(`
+          <div class="section-card ${sec.id === activeSectionId ? 'active-drop' : ''}" id="section_${sec.id}" onclick="setActiveSection(${sec.id})">
+            <div class="section-header">
+              <div>
+                <div class="d-flex align-items-center gap-2">
+                  <h4 style="font-size:15px;margin:0;">${escapeHtml(sec.title)}</h4>
+                  <span class="badge badge-light">${sec.fields.length} field(s)</span>
+                </div>
+                ${sec.description ? `<small class="text-muted">${escapeHtml(sec.description)}</small>` : ''}
+              </div>
+
+              <div class="d-flex align-items-center gap-2">
+                <div class="col-btn-group btn-group btn-group-sm">
+                  <button type="button" class="btn btn-soft ${cols===1?'active':''}" onclick="setSectionCols(${sec.id}, 1)" title="1 Col">1 Col</button>
+                  <button type="button" class="btn btn-soft ${cols===2?'active':''}" onclick="setSectionCols(${sec.id}, 2)" title="2 Cols">2 Cols</button>
+                  <button type="button" class="btn btn-soft ${cols===3?'active':''}" onclick="setSectionCols(${sec.id}, 3)" title="3 Cols">3 Cols</button>
+                  <button type="button" class="btn btn-soft ${cols===4?'active':''}" onclick="setSectionCols(${sec.id}, 4)" title="4 Cols">4 Cols</button>
+                </div>
+
+                <button class="btn btn-soft btn-sm" onclick="editSection(${sec.id})"><i class="fas fa-pencil-alt"></i></button>
+                <button class="btn btn-soft btn-sm text-danger" onclick="deleteSection(${sec.id})"><i class="fas fa-trash"></i></button>
+              </div>
+            </div>
+
+            <div class="field-dropzone">
+              <div class="row" id="section_fields_${sec.id}">
+              </div>
+            </div>
+          </div>
+        `);
+
+        container.append(secCard);
+
+        const fieldsRow = secCard.find(`#section_fields_${sec.id}`);
+        if (!sec.fields || sec.fields.length === 0) {
+          fieldsRow.html('<div class="col-12 text-center p-3 text-muted" style="font-size:12px;border:1px dashed var(--grey-300);border-radius:8px;">No fields in this section. Select fields from the left palette to add them here.</div>');
+        } else {
+          sec.fields.forEach(f => {
+            const span = f.column_span || 1;
+            const effectiveColClass = span > 1 ? (span >= 4 || cols <= 2 ? 'col-12' : 'col-md-8') : colClass;
+            const icon = TYPE_ICONS[f.field_type] || 'fa-tag';
+            const req = f.overrides?.is_required !== undefined ? f.overrides.is_required : f.is_required;
+            const label = f.overrides?.label || f.label;
+            const hasRule = f.conditional_rules && f.conditional_rules.length > 0;
+
+            const tile = $(`
+              <div class="${effectiveColClass} mb-2">
+                <div class="field-tile">
+                  <div class="d-flex align-items-center justify-content-between mb-1">
+                    <div>
+                      <span class="ftype-tag"><i class="fas ${icon}"></i> ${f.field_type}</span>
+                      ${hasRule ? '<span class="cond-rule-badge ml-1"><i class="fas fa-code-branch"></i> Conditional</span>' : ''}
+                    </div>
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-soft p-1" style="font-size:11px;" onclick="openFieldConfig(${f.form_field_id})" title="Configure overrides &amp; rules"><i class="fas fa-cog"></i></button>
+                      <button class="btn btn-soft p-1 text-danger" style="font-size:11px;" onclick="removeFormField(${f.form_field_id})" title="Remove"><i class="fas fa-times"></i></button>
+                    </div>
+                  </div>
+
+                  <div style="font-weight:700;font-size:13.5px;color:var(--grey-900);">
+                    ${escapeHtml(label)} ${req ? '<span class="text-danger">*</span>' : ''}
+                  </div>
+                  <div style="font-size:11px;color:var(--grey-500);font-family:monospace;">${escapeHtml(f.name)}</div>
+                </div>
+              </div>
+            `);
+            fieldsRow.append(tile);
+          });
+        }
+      });
+    }
+
+    function setActiveSection(id) {
+      activeSectionId = id;
+      $('.section-card').removeClass('active-drop');
+      $(`#section_${id}`).addClass('active-drop');
+    }
+
+    function quickAddField(fieldId) {
+      if (!activeSectionId && formData.sections.length > 0) {
+        activeSectionId = formData.sections[0].id;
+      }
+      if (!activeSectionId) {
+        toastr.warning('Please create a section first!');
+        return;
+      }
+
+      $.ajax({
+        url: `/api/admin/forms/${formId}/fields`,
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ field_id: fieldId, section_id: activeSectionId, column_span: 1 }),
+        success: function(res) {
+          if (res.success) {
+            toastr.success('Field added');
+            loadFormData();
+          }
+        }
+      });
+    }
+
+    function removeFormField(formFieldId) {
+      $.ajax({
+        url: `/api/admin/forms/form-fields/${formFieldId}`,
+        type: 'DELETE',
+        success: function() {
+          toastr.success('Field removed');
+          loadFormData();
+        }
+      });
+    }
+
+    function openFieldConfig(formFieldId) {
+      let foundField = null;
+      for (const s of formData.sections) {
+        const match = s.fields.find(f => f.form_field_id === formFieldId);
+        if (match) { foundField = match; break; }
+      }
+      if (!foundField) return;
+
+      $('#cfgFormFieldId').val(formFieldId);
+      $('#cfgLabel').val(foundField.overrides?.label || '');
+      $('#cfgPlaceholder').val(foundField.overrides?.placeholder || '');
+      $('#cfgColSpan').val(foundField.column_span || 1);
+      $('#cfgRequired').prop('checked', foundField.overrides?.is_required !== undefined ? !!foundField.overrides.is_required : !!foundField.is_required);
+
+      // Populate other fields for conditional logic
+      const sel = $('#cfgRuleField').empty().append('<option value="">-- Dependent Field --</option>');
+      formData.sections.forEach(s => {
+        s.fields.forEach(f => {
+          if (f.form_field_id !== formFieldId) {
+            sel.append(`<option value="${f.name}">${f.label} (${f.name})</option>`);
+          }
+        });
+      });
+
+      const rules = foundField.conditional_rules || [];
+      if (rules.length > 0) {
+        const r = rules[0];
+        $('#cfgRuleAction').val(r.action || 'show');
+        $('#cfgRuleField').val(r.field || '');
+        $('#cfgRuleOp').val(r.operator || '==');
+        $('#cfgRuleValue').val(r.value ?? '');
+      } else {
+        $('#cfgRuleAction').val('show');
+        $('#cfgRuleField').val('');
+        $('#cfgRuleOp').val('==');
+        $('#cfgRuleValue').val('');
+      }
+
+      $('#fieldConfigModal').modal('show');
+    }
+
+    function handleSaveFieldConfig(e) {
+      e.preventDefault();
+      const formFieldId = $('#cfgFormFieldId').val();
+      const overrides = {};
+
+      const label = $('#cfgLabel').val().trim();
+      if (label) overrides.label = label;
+
+      const placeholder = $('#cfgPlaceholder').val().trim();
+      if (placeholder) overrides.placeholder = placeholder;
+
+      overrides.is_required = $('#cfgRequired').is(':checked') ? 1 : 0;
+
+      const rules = [];
+      const ruleField = $('#cfgRuleField').val();
+      if (ruleField) {
+        rules.push({
+          action: $('#cfgRuleAction').val(),
+          field: ruleField,
+          operator: $('#cfgRuleOp').val(),
+          value: $('#cfgRuleValue').val()
+        });
+      }
+
+      $.ajax({
+        url: `/api/admin/forms/form-fields/${formFieldId}`,
+        type: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify({
+          column_span: $('#cfgColSpan').val(),
+          overrides,
+          conditional_rules: rules
+        }),
+        success: function(res) {
+          toastr.success('Field configuration saved');
+          $('#fieldConfigModal').modal('hide');
+          loadFormData();
+        }
+      });
+    }
+
+    function openAddSectionModal() {
+      $('#sectionModalTitle').text('Add Form Section');
+      $('#sectionForm')[0].reset();
+      $('#sectionId').val('');
+      $('#sectionModal').modal('show');
+    }
+
+    function editSection(id) {
+      const s = formData.sections.find(sec => sec.id === id);
+      if (!s) return;
+      $('#sectionModalTitle').text('Edit Section');
+      $('#sectionId').val(s.id);
+      $('#sectionTitle').val(s.title);
+      $('#sectionDesc').val(s.description || '');
+      $('#sectionColumns').val(s.columns || 2);
+      $('#sectionModal').modal('show');
+    }
+
+    function handleSaveSection(e) {
+      e.preventDefault();
+      const id = $('#sectionId').val();
+      const url = id ? `/api/admin/forms/sections/${id}` : `/api/admin/forms/${formId}/sections`;
+      const method = id ? 'PUT' : 'POST';
+
+      $.ajax({
+        url,
+        type: method,
+        contentType: 'application/json',
+        data: JSON.stringify({
+          title: $('#sectionTitle').val(),
+          description: $('#sectionDesc').val(),
+          columns: $('#sectionColumns').val()
+        }),
+        success: function() {
+          toastr.success('Section saved');
+          $('#sectionModal').modal('hide');
+          loadFormData();
+        }
+      });
+    }
+
+    function deleteSection(id) {
+      if (confirm('Delete this section? Its fields will be unassigned.')) {
+        $.ajax({
+          url: `/api/admin/forms/sections/${id}`,
+          type: 'DELETE',
+          success: function() {
+            toastr.success('Section deleted');
+            loadFormData();
+          }
+        });
+      }
+    }
+
+    function setSectionCols(secId, cols) {
+      $.ajax({
+        url: `/api/admin/forms/sections/${secId}`,
+        type: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify({ columns: cols }),
+        success: function() {
+          loadFormData();
+        }
+      });
+    }
+
+    function publishForm() {
+      Swal.fire({
+        title: 'Publish this form?',
+        text: 'This will freeze the current layout into a new immutable version snapshot.',
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonText: 'Publish Now',
+        confirmButtonColor: '#14B8A6'
+      }).then(res => {
+        if (res.isConfirmed) {
+          $.ajax({
+            url: `/api/admin/forms/${formId}/publish`,
+            type: 'POST',
+            success: function(r) {
+              toastr.success(r.msg);
+              $('#formStatusBadge').text('published').attr('class', 'badge-pill-tag published');
+              loadFormData();
+            }
+          });
+        }
+      });
+    }
+
+    function switchMode(mode) {
+      if (mode === 'preview') {
+        $('#btnModeBuilder').removeClass('active');
+        $('#btnModePreview').addClass('active');
+        $('#viewBuilder').hide();
+        $('#viewPreview').show();
+        renderPreview();
+      } else {
+        $('#btnModePreview').removeClass('active');
+        $('#btnModeBuilder').addClass('active');
+        $('#viewPreview').hide();
+        $('#viewBuilder').show();
+      }
+    }
+
+    function renderPreview() {
+      const container = $('#previewContainer').empty();
+      if (!formData || !formData.sections) return;
+
+      formData.sections.forEach(s => {
+        const cols = s.columns || 2;
+        const colClass = cols === 1 ? 'col-12' : (cols === 2 ? 'col-md-6' : (cols === 3 ? 'col-md-4' : 'col-md-3'));
+
+        const secDiv = $(`
+          <div class="mb-4">
+            <h5 class="font-weight-bold" style="border-bottom:2px solid var(--teal);padding-bottom:6px;color:var(--grey-900);">
+              ${escapeHtml(s.title)}
+            </h5>
+            ${s.description ? `<p class="text-muted" style="font-size:12px;margin-top:-4px;">${escapeHtml(s.description)}</p>` : ''}
+            <div class="row"></div>
+          </div>
+        `);
+        container.append(secDiv);
+        const row = secDiv.find('.row');
+
+        s.fields.forEach(f => {
+          const span = f.column_span || 1;
+          const finalCol = span > 1 ? (span >= 4 || cols <= 2 ? 'col-12' : 'col-md-8') : colClass;
+          const label = f.overrides?.label || f.label;
+          const req = f.overrides?.is_required !== undefined ? f.overrides.is_required : f.is_required;
+          const reqStar = req ? '<span class="text-danger">*</span>' : '';
+          const placeholder = escapeHtml(f.overrides?.placeholder || f.placeholder || '');
+
+          let inputHtml = '';
+          switch (f.field_type) {
+            case 'textarea':
+              inputHtml = `<textarea class="form-control" name="${f.name}" placeholder="${placeholder}"></textarea>`;
+              break;
+            case 'number':
+              inputHtml = `<input type="number" class="form-control" name="${f.name}" placeholder="${placeholder}">`;
+              break;
+            case 'date':
+              inputHtml = `<input type="date" class="form-control" name="${f.name}">`;
+              break;
+            case 'time':
+              inputHtml = `<input type="time" class="form-control" name="${f.name}">`;
+              break;
+            case 'datetime':
+              inputHtml = `<input type="datetime-local" class="form-control" name="${f.name}">`;
+              break;
+            case 'dropdown':
+              const opts = (f.options || []).map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+              inputHtml = `<select class="form-control" name="${f.name}"><option value="">-- Select --</option>${opts}</select>`;
+              break;
+            case 'radio':
+              inputHtml = (f.options || []).map(o => `
+                <div class="custom-control custom-radio">
+                  <input type="radio" id="prev_r_${f.id}_${o.value}" name="${f.name}" value="${o.value}" class="custom-control-input">
+                  <label class="custom-control-label" for="prev_r_${f.id}_${o.value}">${o.label}</label>
+                </div>
+              `).join('');
+              break;
+            case 'checkbox':
+              inputHtml = (f.options || []).map(o => `
+                <div class="custom-control custom-checkbox">
+                  <input type="checkbox" id="prev_c_${f.id}_${o.value}" name="${f.name}[]" value="${o.value}" class="custom-control-input">
+                  <label class="custom-control-label" for="prev_c_${f.id}_${o.value}">${o.label}</label>
+                </div>
+              `).join('');
+              break;
+            case 'boolean':
+              inputHtml = `
+                <div class="custom-control custom-switch">
+                  <input type="checkbox" class="custom-control-input" id="prev_b_${f.id}" name="${f.name}" value="1">
+                  <label class="custom-control-label" for="prev_b_${f.id}">Yes / Active</label>
+                </div>
+              `;
+              break;
+            case 'file':
+            case 'image':
+              inputHtml = `<input type="file" class="form-control-file" name="${f.name}">`;
+              break;
+            default:
+              inputHtml = `<input type="${f.field_type}" class="form-control" name="${f.name}" placeholder="${placeholder}">`;
+          }
+
+          const fieldWrapper = $(`
+            <div class="${finalCol} form-group" data-field-name="${f.name}">
+              <label class="form-label font-weight-bold">${escapeHtml(label)} ${reqStar}</label>
+              ${inputHtml}
+            </div>
+          `);
+          row.append(fieldWrapper);
+        });
+      });
+
+      container.append(`
+        <div class="mt-4 pt-3 border-top text-right">
+          <button type="button" class="btn btn-teal btn-lg" onclick="toastr.success('Preview submitted successfully!')">
+            <i class="fas fa-check-circle mr-1"></i> Submit Form (Test)
+          </button>
+        </div>
+      `);
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "name": "presco-digital-nursing",
+  "version": "1.0.0",
+  "description": "Presco Digital Nursing Platform with Field Master & Dynamic Form Builder",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "migrate": "node src/database/migrate.js",
+    "seed": "node src/database/seed.js",
+    "setup": "npm run migrate && npm run seed"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.8.2",
+    "cors": "^2.8.5",
+    "ejs": "^3.1.10",
+    "express": "^4.21.0",
+    "express-session": "^1.18.1",
+    "express-validator": "^7.2.0",
+    "helmet": "^8.0.0",
+    "memorystore": "^1.6.7",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "sanitize-html": "^2.13.1",
+    "sql.js": "^1.11.0",
+    "uuid": "^10.0.0"
+  }
+}

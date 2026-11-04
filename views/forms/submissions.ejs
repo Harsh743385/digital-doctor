@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+</head>
+<body>
+  <%- include('../partials/navbar') %>
+
+  <div class="app-container">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+      <div>
+        <div class="d-flex align-items-center gap-2">
+          <a href="/admin/forms" class="btn btn-soft btn-sm"><i class="fas fa-arrow-left"></i> Forms</a>
+          <h2 style="font-size: 22px; margin: 0;"><%= form.name %> — Submissions</h2>
+        </div>
+        <div style="font-size: 13px; color: var(--grey-500); margin-top: 4px;">
+          Review clinical intake entries and patient records submitted via <code>/forms/<%= form.slug %></code>.
+        </div>
+      </div>
+      <div>
+        <a href="/forms/<%= form.slug %>" target="_blank" class="btn btn-teal btn-sm">
+          <i class="fas fa-plus mr-1"></i> New Entry
+        </a>
+      </div>
+    </div>
+
+    <div class="presco-card">
+      <div class="presco-card-header">
+        <h4>Submission Records <span id="subCountBadge" class="badge badge-light font-weight-bold ml-1">0</span></h4>
+        <button class="btn btn-soft btn-sm" onclick="loadSubmissions()"><i class="fas fa-sync-alt mr-1"></i> Refresh</button>
+      </div>
+
+      <div class="p-0 table-responsive">
+        <table class="presco-table" id="submissionsTable">
+          <thead>
+            <tr>
+              <th style="width: 10%;">ID</th>
+              <th>Patient</th>
+              <th>UHID</th>
+              <th>Submitted At</th>
+              <th>IP Address</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="submissionsTableBody">
+            <tr><td colspan="6" class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x text-teal"></i></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="modal fade" id="subDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title font-weight-bold" id="detailModalTitle">Submission Detail</h5>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body" id="detailModalBody">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-soft" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('../partials/footer') %>
+
+  <script>
+    const formId = <%= form.id %>;
+
+    $(document).ready(function() {
+      loadSubmissions();
+    });
+
+    function loadSubmissions() {
+      $.getJSON(`/api/forms/${formId}/submissions`, function(res) {
+        if (res.success) {
+          renderSubmissions(res.data);
+        }
+      });
+    }
+
+    function renderSubmissions(list) {
+      $('#subCountBadge').text(list.length);
+      const tbody = $('#submissionsTableBody').empty();
+
+      if (!list || list.length === 0) {
+        tbody.html('<tr><td colspan="6" class="text-center p-5 text-muted"><i class="fas fa-inbox fa-2x mb-2 opacity-50"></i><p>No submissions found for this form.</p></td></tr>');
+        return;
+      }
+
+      list.forEach(s => {
+        const tr = $(`
+          <tr>
+            <td><b>#${s.id}</b></td>
+            <td><b>${escapeHtml(s.patient_name || 'Anonymous / OPD')}</b></td>
+            <td><span class="badge badge-light font-weight-bold">${escapeHtml(s.patient_uhid || '—')}</span></td>
+            <td style="font-size:12px;color:var(--grey-500);">${new Date(s.created_at).toLocaleString()}</td>
+            <td style="font-size:12px;color:var(--grey-500);font-family:monospace;">${s.ip_address || '127.0.0.1'}</td>
+            <td class="text-right">
+              <button class="btn btn-soft btn-sm" onclick="viewDetail(${s.id})">
+                <i class="fas fa-eye mr-1"></i> Review
+              </button>
+            </td>
+          </tr>
+        `);
+        tbody.append(tr);
+      });
+    }
+
+    function viewDetail(subId) {
+      $('#detailModalBody').html('<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x text-teal"></i></div>');
+      $('#subDetailModal').modal('show');
+
+      $.getJSON(`/api/submissions/${subId}`, function(res) {
+        if (!res.success) {
+          $('#detailModalBody').html('<div class="alert alert-danger">' + res.msg + '</div>');
+          return;
+        }
+
+        const s = res.data;
+        $('#detailModalTitle').text(`Submission #${s.id} — ${s.form_name}`);
+
+        let html = `
+          <div class="p-3 mb-3" style="background:var(--grey-50);border-radius:10px;border:1px solid var(--grey-200);font-size:13px;">
+            <div class="row">
+              <div class="col-sm-6"><b>Patient:</b> ${s.patient_name || 'N/A'} (UHID: ${s.patient_uhid || '—'})</div>
+              <div class="col-sm-6 text-sm-right"><b>Submitted:</b> ${new Date(s.created_at).toLocaleString()}</div>
+            </div>
+          </div>
+          <table class="presco-table">
+            <thead><tr><th style="width:35%;">Clinical Field</th><th>Recorded Value</th></tr></thead>
+            <tbody>
+        `;
+
+        for (const [key, val] of Object.entries(s.data || {})) {
+          const field = (s.fieldMap && s.fieldMap[key]) || { label: key };
+          let displayVal = val;
+          if (Array.isArray(val)) displayVal = val.join(', ');
+          else if (typeof val === 'boolean') displayVal = val ? '<span class="badge badge-success">Yes</span>' : '<span class="badge badge-secondary">No</span>';
+          else if (String(val).startsWith('/uploads/')) {
+            displayVal = `<a href="${val}" target="_blank" class="btn btn-sm btn-soft"><i class="fas fa-download mr-1"></i> Download Attachment</a>`;
+          }
+
+          html += `<tr><td><b>${escapeHtml(field.label || key)}</b><div style="font-size:10.5px;color:var(--grey-500);font-family:monospace;">${key}</div></td><td>${displayVal ?? '<span class="text-muted">—</span>'}</td></tr>`;
+        }
+
+        if (s.files && s.files.length > 0) {
+          html += `<tr><td colspan="2" style="background:#f8fafc;font-weight:700;">Uploaded Files (${s.files.length})</td></tr>`;
+          s.files.forEach(f => {
+            html += `<tr><td>${f.field_label || f.field_name}</td><td><a href="${f.file_path}" target="_blank" class="btn btn-sm btn-soft"><i class="fas fa-paperclip mr-1"></i> ${f.original_name} (${(f.file_size/1024).toFixed(1)} KB)</a></td></tr>`;
+          });
+        }
+
+        html += '</tbody></table>';
+        $('#detailModalBody').html(html);
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+  </script>
+</body>
+</html>

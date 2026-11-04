@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <div class="app-container" style="max-width: 650px; margin-top: 60px;">
+    <div class="presco-card text-center p-5">
+      <div style="width: 72px; height: 72px; border-radius: 50%; background: #FEE2E2; color: #DC2626; display: inline-flex; align-items: center; justify-content: center; font-size: 32px; margin-bottom: 20px;">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <h2 style="font-size: 22px; margin-bottom: 10px;"><%= title %></h2>
+      <p style="color: var(--grey-500); font-size: 15px; margin-bottom: 24px;"><%= message %></p>
+      <div>
+        <a href="/dashboard" class="btn btn-teal">
+          <i class="fas fa-home mr-1"></i> Return to Dashboard
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <%- include('partials/footer') %>
+</body>
+</html>

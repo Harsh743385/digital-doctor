@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <div class="app-container">
+    <!-- Welcome Banner -->
+    <div style="background: linear-gradient(135deg, var(--teal-d), var(--ink)); color: #fff; border-radius: var(--radius-lg); padding: 24px 28px; margin-bottom: 24px; box-shadow: var(--shadow-md);">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.85; margin-bottom: 6px;">
+            <i class="fas fa-hospital-alt mr-1"></i> Presco Hospital &amp; Healthcare · IPD Clinical Suite
+          </div>
+          <h2 style="color: #fff; font-size: 24px; margin-bottom: 8px;">Welcome, <%= currentUser.full_name %></h2>
+          <p style="margin: 0; opacity: 0.9; font-size: 14px; max-width: 650px;">
+            Manage hospital-wide clinical Field Master definitions, design multi-column dynamic clinical forms, publish versioned assessment protocols, and manage Digital Nursing IPD charts.
+          </p>
+        </div>
+        <div class="col-md-4 text-md-right mt-3 mt-md-0 d-flex flex-column flex-sm-row justify-content-md-end gap-2">
+          <a href="/cms/digital-doctor" class="btn btn-warning text-dark font-weight-bold" style="padding: 10px 18px; border-radius: 10px;">
+            <i class="fas fa-user-md mr-1"></i> Digital Doctor
+          </a>
+          <a href="/cms/digital-nursing" class="btn btn-light" style="color: var(--teal-d); font-weight: 700; padding: 10px 18px; border-radius: 10px;">
+            <i class="fas fa-user-nurse mr-1"></i> Digital Nursing
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI Metric Cards -->
+    <div class="row mb-4">
+      <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+        <a href="/admin/fields" style="text-decoration: none;">
+          <div class="stat-tile">
+            <div class="stat-info">
+              <div class="stat-num"><%= stats.fieldsCount %></div>
+              <div class="stat-label">Master Fields</div>
+            </div>
+            <div class="stat-icon" style="background: var(--teal-l); color: var(--teal-d);">
+              <i class="fas fa-cubes"></i>
+            </div>
+          </div>
+        </a>
+      </div>
+
+      <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+        <a href="/admin/forms" style="text-decoration: none;">
+          <div class="stat-tile">
+            <div class="stat-info">
+              <div class="stat-num"><%= stats.formsCount %></div>
+              <div class="stat-label">Dynamic Forms</div>
+            </div>
+            <div class="stat-icon" style="background: #EFF6FF; color: var(--blue);">
+              <i class="fas fa-file-invoice"></i>
+            </div>
+          </div>
+        </a>
+      </div>
+
+      <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+        <div class="stat-tile">
+          <div class="stat-info">
+            <div class="stat-num"><%= stats.submissionsCount %></div>
+            <div class="stat-label">Submissions</div>
+          </div>
+          <div class="stat-icon" style="background: #ECFDF5; color: var(--green);">
+            <i class="fas fa-check-circle"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+        <a href="/cms/digital-nursing" style="text-decoration: none;">
+          <div class="stat-tile">
+            <div class="stat-info">
+              <div class="stat-num"><%= stats.patientsCount %></div>
+              <div class="stat-label">IPD Patients</div>
+            </div>
+            <div class="stat-icon" style="background: #FEF3C7; color: var(--amber);">
+              <i class="fas fa-procedures"></i>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- Forms Section -->
+      <div class="col-lg-6 mb-4">
+        <div class="presco-card h-100">
+          <div class="presco-card-header">
+            <h4><i class="fas fa-file-invoice text-teal mr-2" style="color:var(--teal-d);"></i> Clinical Forms</h4>
+            <a href="/admin/forms" class="btn btn-soft btn-sm">
+              <i class="fas fa-plus mr-1"></i> Manage Forms
+            </a>
+          </div>
+          <div class="p-0">
+            <% if (recentForms && recentForms.length > 0) { %>
+              <div class="table-responsive">
+                <table class="presco-table">
+                  <thead>
+                    <tr>
+                      <th>Form Name</th>
+                      <th>Category</th>
+                      <th>Version</th>
+                      <th>Status</th>
+                      <th class="text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% recentForms.forEach(f => { %>
+                      <tr>
+                        <td>
+                          <div style="font-weight: 700; color: var(--grey-900);"><%= f.name %></div>
+                          <div style="font-size: 11px; color: var(--grey-500);"><%= f.field_count %> field(s)</div>
+                        </td>
+                        <td>
+                          <span class="badge-pill-tag category"><%= f.category || 'Clinical' %></span>
+                        </td>
+                        <td>
+                          <span class="badge-pill-tag" style="background: var(--grey-100); color: var(--grey-700);">v<%= f.version %></span>
+                        </td>
+                        <td>
+                          <span class="badge-pill-tag <%= f.status %>"><%= f.status %></span>
+                        </td>
+                        <td class="text-right">
+                          <a href="/admin/forms/<%= f.id %>/builder" class="btn btn-soft btn-sm" title="Form Builder">
+                            <i class="fas fa-edit"></i>
+                          </a>
+                          <a href="/forms/<%= f.slug %>" target="_blank" class="btn btn-teal btn-sm" title="Open Form">
+                            <i class="fas fa-external-link-alt"></i>
+                          </a>
+                        </td>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+              </div>
+            <% } else { %>
+              <div class="p-5 text-center text-muted">
+                <i class="fas fa-clipboard-list fa-2x mb-2 opacity-50"></i>
+                <p>No forms created yet.</p>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Submissions Section -->
+      <div class="col-lg-6 mb-4">
+        <div class="presco-card h-100">
+          <div class="presco-card-header">
+            <h4><i class="fas fa-history mr-2" style="color:var(--teal-d);"></i> Recent Submissions</h4>
+            <span class="text-muted" style="font-size: 12px;">Real-time intake stream</span>
+          </div>
+          <div class="p-0">
+            <% if (recentSubmissions && recentSubmissions.length > 0) { %>
+              <div class="table-responsive">
+                <table class="presco-table">
+                  <thead>
+                    <tr>
+                      <th>Form</th>
+                      <th>Patient</th>
+                      <th>Submitted At</th>
+                      <th class="text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% recentSubmissions.forEach(sub => { %>
+                      <tr>
+                        <td>
+                          <div style="font-weight: 700;"><%= sub.form_name %></div>
+                          <div style="font-size: 11px; color: var(--grey-500);"><%= sub.form_slug %></div>
+                        </td>
+                        <td>
+                          <div style="font-weight: 600;"><%= sub.patient_name || 'General / OPD' %></div>
+                        </td>
+                        <td style="font-size: 12px; color: var(--grey-500);">
+                          <%= new Date(sub.created_at).toLocaleString() %>
+                        </td>
+                        <td class="text-right">
+                          <button class="btn btn-soft btn-sm" onclick="viewSubmission(<%= sub.id %>)">
+                            <i class="fas fa-eye mr-1"></i> View
+                          </button>
+                        </td>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+              </div>
+            <% } else { %>
+              <div class="p-5 text-center text-muted">
+                <i class="fas fa-inbox fa-2x mb-2 opacity-50"></i>
+                <p>No submissions recorded yet.</p>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Submission Detail Modal -->
+  <div class="modal fade" id="submissionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title font-weight-bold" id="subModalTitle">Submission Details</h5>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body" id="subModalBody">
+          <div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-soft" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('partials/footer') %>
+
+  <script>
+    function viewSubmission(subId) {
+      $('#subModalBody').html('<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x text-teal"></i></div>');
+      $('#submissionModal').modal('show');
+
+      $.getJSON('/api/submissions/' + subId, function(res) {
+        if (!res.success) {
+          $('#subModalBody').html('<div class="alert alert-danger">' + res.msg + '</div>');
+          return;
+        }
+        const s = res.data;
+        $('#subModalTitle').text(s.form_name + ' — Submission #' + s.id);
+
+        let html = `
+          <div class="p-3 mb-3" style="background:var(--grey-50);border-radius:10px;border:1px solid var(--grey-200);font-size:12.5px;">
+            <div class="row">
+              <div class="col-sm-6"><b>Patient:</b> ${s.patient_name || 'N/A'} (UHID: ${s.patient_uhid || '—'})</div>
+              <div class="col-sm-6 text-sm-right"><b>Date:</b> ${new Date(s.created_at).toLocaleString()}</div>
+            </div>
+          </div>
+          <table class="presco-table">
+            <thead><tr><th style="width:35%;">Field</th><th>Submitted Value</th></tr></thead>
+            <tbody>
+        `;
+
+        const data = s.data || {};
+        for (const [key, val] of Object.entries(data)) {
+          const fieldInfo = (s.fieldMap && s.fieldMap[key]) || { label: key };
+          let displayVal = val;
+          if (Array.isArray(val)) displayVal = val.join(', ');
+          else if (typeof val === 'boolean') displayVal = val ? '<span class="badge badge-success">Yes</span>' : '<span class="badge badge-secondary">No</span>';
+          else if (String(val).startsWith('/uploads/')) {
+            displayVal = `<a href="${val}" target="_blank" class="btn btn-sm btn-soft"><i class="fas fa-download mr-1"></i> View Upload</a>`;
+          }
+          html += `<tr><td><b>${fieldInfo.label || key}</b><div style="font-size:10.5px;color:var(--grey-500);">${key}</div></td><td>${displayVal || '<span class="text-muted">—</span>'}</td></tr>`;
+        }
+
+        if (s.files && s.files.length > 0) {
+          html += `<tr><td colspan="2" style="background:#f8fafc;font-weight:700;">Uploaded Files (${s.files.length})</td></tr>`;
+          s.files.forEach(f => {
+            html += `<tr><td>${f.field_label || f.field_name}</td><td><a href="${f.file_path}" target="_blank" class="btn btn-sm btn-soft"><i class="fas fa-paperclip mr-1"></i> ${f.original_name} (${(f.file_size/1024).toFixed(1)} KB)</a></td></tr>`;
+          });
+        }
+
+        html += '</tbody></table>';
+        $('#subModalBody').html(html);
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+  <style>
+    :root {
+      --doc-blue: #0284C7;
+      --doc-blue-d: #0369A1;
+      --doc-blue-l: #F0F9FF;
+      --doc-blue-bd: #BAE6FD;
+    }
+    #doc-embed-root { background: var(--grey-50); color: var(--grey-900); font-family: 'Inter', 'Segoe UI', Arial, sans-serif; }
+    html.drawer-open, body.drawer-open { overflow: hidden !important; }
+    #doc-embed-root .doc-shell { padding: 14px 18px 60px; max-width: 100%; margin: 0; }
+
+    /* Doctor Pill Tabs Navigation */
+    .doc-pills {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 10px;
+      padding: 14px;
+      background: #fff;
+      border: 1px solid var(--grey-200);
+      border-radius: 14px;
+      list-style: none;
+      margin: 0;
+    }
+    .doc-pills li { list-style: none; }
+    .doc-pills .pill {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid var(--grey-200);
+      color: var(--grey-700);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s ease;
+      text-align: center;
+    }
+    .doc-pills .pill:hover {
+      border-color: var(--doc-blue);
+      color: var(--doc-blue-d);
+      background: var(--doc-blue-l);
+    }
+    .doc-pills .pill.active {
+      background: linear-gradient(135deg, var(--doc-blue), var(--doc-blue-d));
+      color: #fff;
+      border-color: var(--doc-blue);
+      box-shadow: 0 4px 10px rgba(2, 132, 199, 0.25);
+    }
+
+    /* Cards & Section Panels */
+    .dcard {
+      background: #fff;
+      border: 1px solid var(--grey-200);
+      border-radius: 14px;
+      margin-top: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+    .dcard-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--grey-200);
+      flex-wrap: wrap;
+      gap: 12px;
+      background: #fafbfc;
+      border-top-left-radius: 14px;
+      border-top-right-radius: 14px;
+    }
+    .dcard-head h4 { font-size: 16px; font-weight: 800; margin: 0; color: var(--grey-900); }
+    .dcard-body { padding: 22px; min-height: 380px; }
+
+    /* Patient Switcher Header */
+    .patient-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 14px;
+      background: #fff;
+      border: 1px solid var(--grey-200);
+      border-radius: 14px;
+      padding: 14px 18px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Custom Doctor Form Tables */
+    .table-doc {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+      border: 1px solid var(--grey-200);
+    }
+    .table-doc th {
+      background: #f1f5f9;
+      color: var(--grey-700);
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 8px 10px;
+      border: 1px solid var(--grey-200);
+    }
+    .table-doc td {
+      padding: 8px 10px;
+      border: 1px solid var(--grey-200);
+      font-size: 13px;
+      vertical-align: middle;
+    }
+
+    /* Form section banners */
+    .doc-section-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--doc-blue-d);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 2px solid var(--doc-blue-bd);
+      padding-bottom: 4px;
+      margin: 22px 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Drawer */
+    .drawer-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, .45); z-index: 1040; display: none; }
+    .drawer-backdrop.open { display: block; }
+    .drawer {
+      position: fixed; top: 0; right: -850px; height: 100%; width: min(850px, 95vw);
+      background: #fff; box-shadow: -8px 0 24px rgba(0,0,0,.18); z-index: 1050;
+      display: flex; flex-direction: column; transition: right .25s ease;
+    }
+    .drawer.open { right: 0; }
+    .drawer-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 22px; border-bottom: 1px solid var(--grey-200); background: #fafbfc;
+    }
+    .drawer-head h4 { margin: 0; font-size: 17px; font-weight: 800; color: var(--grey-900); }
+    .drawer-head .sub { font-size: 12px; color: var(--grey-500); margin-top: 2px; }
+    .drawer-body { flex: 1; overflow-y: auto; padding: 22px; }
+    .drawer-foot {
+      padding: 14px 22px; border-top: 1px solid var(--grey-200);
+      display: flex; gap: 10px; justify-content: flex-end; background: #fafbfc;
+    }
+
+    /* Score badges */
+    .score-badge-likely { background: #fee2e2; color: #b91c1c; font-weight: 700; border-radius: 6px; padding: 4px 10px; }
+    .score-badge-unlikely { background: #dcfce7; color: #15803d; font-weight: 700; border-radius: 6px; padding: 4px 10px; }
+  </style>
+</head>
+<body>
+  <%- include('../partials/navbar') %>
+
+  <div id="doc-embed-root">
+    <div class="doc-shell">
+      <!-- Patient Information & Switcher Banner -->
+      <div class="patient-banner">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div style="width:48px;height:48px;background:linear-gradient(135deg, var(--doc-blue), var(--doc-blue-d));color:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 10px rgba(2,132,199,.3);">
+            <i class="fas fa-user-md"></i>
+          </div>
+          <div>
+            <div style="font-size:17px;font-weight:800;color:var(--grey-900);">
+              <%= patient.full_name %>
+              <span class="badge badge-primary font-weight-bold ml-2">Digital Doctor Station</span>
+            </div>
+            <div style="font-size:12.5px;color:var(--grey-500);margin-top:2px;">
+              UHID: <b><%= patient.uhid %></b> &nbsp;·&nbsp;
+              IPD: <b><%= patient.ipd_number %></b> &nbsp;·&nbsp;
+              <%= patient.age %> &nbsp;·&nbsp; <%= patient.gender %> &nbsp;·&nbsp;
+              <span class="badge badge-light font-weight-bold"><%= patient.ward || 'Special Ward' %> (<%= patient.bed_number || 'SW-01' %>)</span>
+              &nbsp;·&nbsp; Consultant: <b><%= patient.admitting_consultant || 'Dr. Sanghavi' %></b>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          <!-- Patient Switcher Dropdown -->
+          <div class="dropdown">
+            <button class="btn btn-soft btn-sm dropdown-toggle font-weight-bold" type="button" data-toggle="dropdown">
+              <i class="fas fa-users mr-1"></i> Switch Patient (<%= allPatients.length %>)
+            </button>
+            <div class="dropdown-menu dropdown-menu-right" style="min-width: 280px; max-height: 350px; overflow-y: auto;">
+              <h6 class="dropdown-header text-uppercase font-weight-bold">Select In-Patient</h6>
+              <% allPatients.forEach(p => { %>
+                <a class="dropdown-item d-flex justify-content-between align-items-center <%= p.id == patient.id ? 'active font-weight-bold' : '' %>"
+                   href="/cms/digital-doctor?patient_id=<%= p.id %>">
+                  <div>
+                    <div><%= p.full_name %></div>
+                    <small class="text-muted"><%= p.uhid %> · <%= p.bed_number %></small>
+                  </div>
+                  <% if (p.id == patient.id) { %>
+                    <i class="fas fa-check"></i>
+                  <% } %>
+                </a>
+              <% }) %>
+            </div>
+          </div>
+
+          <a href="/cms/digital-nursing?patient_id=<%= patient.id %>" class="btn btn-soft btn-sm text-teal font-weight-bold">
+            <i class="fas fa-user-nurse mr-1"></i> Nursing Chart
+          </a>
+
+          <button id="btnPrintOfficialPdf" class="btn btn-danger btn-sm font-weight-bold" onclick="DigitalDoctor.openPdfPrint()">
+            <i class="fas fa-file-pdf mr-1"></i> Print Official PDF Form
+          </button>
+        </div>
+      </div>
+
+      <!-- 7 Digital Doctor Submodules Navigation Tabs -->
+      <ul class="doc-pills" id="docTabs">
+        <li><div class="pill active" data-tab="initial"><i class="fas fa-stethoscope"></i> Initial Assessment</div></li>
+        <li><div class="pill" data-tab="progress"><i class="fas fa-file-medical-alt"></i> Consultant Notes</div></li>
+        <li><div class="pill" data-tab="crossref"><i class="fas fa-exchange-alt"></i> Cross Reference Visit</div></li>
+        <li><div class="pill" data-tab="mohandover"><i class="fas fa-clipboard-list"></i> MO Handover Sheet</div></li>
+        <li><div class="pill" data-tab="sbar"><i class="fas fa-project-diagram"></i> Doctor SBAR Handover</div></li>
+        <li><div class="pill" data-tab="dvt"><i class="fas fa-calculator"></i> DVT Risk Score</div></li>
+        <li><div class="pill" data-tab="blood"><i class="fas fa-tint"></i> Blood Transfusion</div></li>
+      </ul>
+
+      <!-- Main Clinical Card -->
+      <div class="dcard">
+        <div class="dcard-head">
+          <h4 id="dcardTitle">Doctor Initial Assessment on Admission</h4>
+          <div class="actions" id="dcardActions"></div>
+        </div>
+        <div class="dcard-body">
+          <div id="docFeatureBody"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide-In Drawer for Recording/Editing Doctor Forms -->
+  <div class="drawer-backdrop" id="docDrawerBackdrop"></div>
+  <div class="drawer" id="docDrawer">
+    <div class="drawer-head">
+      <div>
+        <h4 id="docDrawerTitle">Doctor Form Entry</h4>
+        <div class="sub" id="docDrawerSub">Anand Surgical Hospital Pvt Ltd</div>
+      </div>
+      <button type="button" class="btn btn-soft btn-icon" onclick="closeDocDrawer()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="drawer-body" id="docDrawerBody"></div>
+    <div class="drawer-foot">
+      <button type="button" class="btn btn-soft" onclick="closeDocDrawer()">Cancel</button>
+      <button type="button" class="btn btn-primary font-weight-bold" id="docDrawerSaveBtn" onclick="DigitalDoctor.saveCurrent()">
+        <i class="fas fa-save mr-1"></i> Save Clinical Record
+      </button>
+    </div>
+  </div>
+
+  <%- include('../partials/footer') %>
+
+  <!-- Presco Digital Doctor Client Script -->
+  <script>
+    const PID = <%= patient.id %>;
+    const HID = <%= hospital.id %>;
+    const PNM = "<%= patient.full_name %>";
+    const PUHID = "<%= patient.uhid %>";
+    const PIPD = "<%= patient.ipd_number %>";
+    const PBED = "<%= patient.bed_number || 'SW-01' %>";
+    const PWARD = "<%= patient.ward || 'Special Ward' %>";
+    const CSRF = $('meta[name="csrf-token"]').attr('content');
+
+    const DOC_URLS = {
+      initial:   { list: "/cms/ajax/doctor/assessment/list", save: "/cms/ajax/doctor/assessment/save", del: "/cms/ajax/doctor/assessment/delete" },
+      progress:  { list: "/cms/ajax/doctor/notes/list", save: "/cms/ajax/doctor/notes/save", del: "/cms/ajax/doctor/notes/delete" },
+      crossref:  { list: "/cms/ajax/doctor/cross-reference/list", save: "/cms/ajax/doctor/cross-reference/save", del: "/cms/ajax/doctor/cross-reference/delete" },
+      mohandover:{ list: "/cms/ajax/doctor/mo-handover/list", save: "/cms/ajax/doctor/mo-handover/save", del: "/cms/ajax/doctor/mo-handover/delete" },
+      sbar:      { list: "/cms/ajax/doctor/sbar/list", save: "/cms/ajax/doctor/sbar/save", del: "/cms/ajax/doctor/sbar/delete" },
+      blood:     { list: "/cms/ajax/doctor/blood-transfusion/list", save: "/cms/ajax/doctor/blood-transfusion/save", del: "/cms/ajax/doctor/blood-transfusion/delete" }
+    };
+
+    function docApi(url, data, method) {
+      return $.ajax({
+        url,
+        type: method || 'POST',
+        data: $.extend({ _token: CSRF, hospital_id: HID, patient_id: PID }, data || {})
+      });
+    }
+
+    function openDocDrawer(title, sub, bodyHtml) {
+      $('#docDrawerTitle').text(title);
+      $('#docDrawerSub').text(sub || (PNM + ' (UHID: ' + PUHID + ')'));
+      $('#docDrawerBody').html(bodyHtml);
+      $('#docDrawer').addClass('open');
+      $('#docDrawerBackdrop').addClass('open');
+      $('html, body').addClass('drawer-open');
+    }
+
+    function closeDocDrawer() {
+      $('#docDrawer').removeClass('open');
+      $('#docDrawerBackdrop').removeClass('open');
+      $('#docDrawerBody').empty();
+      $('html, body').removeClass('drawer-open');
+    }
+    $(document).on('click', '#docDrawerBackdrop', closeDocDrawer);
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // ── Digital Doctor Core Controller ──
+    const DigitalDoctor = (function() {
+      let activeTab = 'initial';
+      let activeRecordCache = null;
+
+      function getActiveTab() { return activeTab; }
+
+      function setHead(title, actionsHtml) {
+        $('#dcardTitle').text(title);
+        $('#dcardActions').html(actionsHtml || '');
+      }
+
+      function switchTab(name) {
+        activeTab = name;
+        $('#docTabs .pill').removeClass('active');
+        $(`#docTabs .pill[data-tab="${name}"]`).addClass('active');
+        renderFeature();
+      }
+
+      function openPdfPrint() {
+        let formType = 'initial-assessment';
+        if (activeTab === 'progress') formType = 'progress-notes';
+        if (activeTab === 'crossref') formType = 'cross-reference';
+        if (activeTab === 'mohandover') formType = 'mo-handover';
+        if (activeTab === 'sbar') formType = 'sbar-handover';
+        if (activeTab === 'blood') formType = 'blood-transfusion';
+        if (activeTab === 'dvt') formType = 'initial-assessment';
+
+        window.open(`/cms/ajax/doctor/print/${formType}?patient_id=${PID}`, '_blank');
+      }
+
+      function renderFeature() {
+        const body = $('#docFeatureBody').html('<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i></div>');
+
+        switch (activeTab) {
+          case 'initial':
+            setHead(
+              'Doctor Initial Assessment on Admission (PDF Pages 1–3)',
+              `<button class="btn btn-primary btn-sm font-weight-bold" onclick="DigitalDoctor.openInitialAssessmentForm()">
+                <i class="fas fa-edit mr-1"></i> Edit / Record Assessment
+               </button>
+               <button class="btn btn-outline-danger btn-sm font-weight-bold ml-2" onclick="DigitalDoctor.openPdfPrint()">
+                <i class="fas fa-print mr-1"></i> Print Form
+               </button>`
+            );
+            docApi(DOC_URLS.initial.list).done(r => {
+              body.empty();
+              if (!r.data || r.data.length === 0) {
+                body.html(`
+                  <div class="text-center p-5 text-muted">
+                    <i class="fas fa-stethoscope fa-3x mb-3 text-primary opacity-50"></i>
+                    <h5>No Doctor Initial Assessment recorded yet for this patient.</h5>
+                    <p class="text-secondary">Capture full admission clinical history, habits, past medical, general examination, systemic review, and Wells DVT risk score.</p>
+                    <button class="btn btn-primary btn-sm mt-2 font-weight-bold" onclick="DigitalDoctor.openInitialAssessmentForm()">
+                      <i class="fas fa-plus mr-1"></i> Start Initial Assessment
+                    </button>
+                  </div>
+                `);
+                return;
+              }
+              const it = r.data[0];
+              activeRecordCache = it;
+              renderInitialAssessmentView(body, it);
+            });
+            break;
+
+          case 'progress':
+            setHead(
+              "Attending Consultant's Notes / Progress Notes (PDF Page 4 - ASH/115/F)",
+              `<button class="btn btn-primary btn-sm font-weight-bold" onclick="DigitalDoctor.openNewProgressNote()">
+                <i class="fas fa-plus mr-1"></i> Add Consultant Note
+               </button>
+               <button class="btn btn-outline-danger btn-sm font-weight-bold ml-2" onclick="DigitalDoctor.openPdfPrint()">
+                <i class="fas fa-print mr-1"></i> Print ASH/115/F
+               </button>`
+            );
+            docApi(DOC_URLS.progress.list).done(r => {
+              body.empty();
+              if (!r.data || r.data.length === 0) {
+                body.html(`
+                  <div class="text-center p-5 text-muted">
+                    <i class="fas fa-file-medical-alt fa-3x mb-3 text-primary opacity-50"></i>
+                    <h5>No Consultant Notes recorded for this admission.</h5>
+                    <button class="btn btn-primary btn-sm mt-2 font-weight-bold" onclick="DigitalDoctor.openNewProgressNote()">
+                      <i class="fas fa-plus mr-1"></i> Add First Note
+                    </button>
+                  </div>
+                `);
+                return;
+              }
+              let html = `
+                <table class="table-doc">
+                  <thead>
+                    <tr>
+                      <th style="width:110px;">Date</th>
+                      <th style="width:90px;">Time</th>
+                      <th>Particulars (Clinical Notes & Recommendations)</th>
+                      <th style="width:160px;">Consultant Signature</th>
+                      <th style="width:60px;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+              `;
+              r.data.forEach(n => {
+                html += `
+                  <tr>
+                    <td><b>${n.note_date}</b></td>
+                    <td>${n.note_time}</td>
+                    <td style="white-space: pre-wrap;">${escapeHtml(n.particulars)}</td>
+                    <td><span class="badge badge-light border font-weight-bold text-primary"><i class="fas fa-signature mr-1"></i>${escapeHtml(n.signature || n.consultant_name)}</span></td>
+                    <td>
+                      <button class="btn btn-soft btn-sm text-danger" onclick="DigitalDoctor.deleteNote(${n.id})"><i class="fas fa-trash"></i></button>
+                    </td>
+                  </tr>
+                `;
+              });
+              html += '</tbody></table>';
+              body.html(html);
+            });
+            break;
+
+          case 'crossref':
+            setHead(
+              "Cross Reference Visit Notes (PDF Pages 5–6 - ASH/130/F & ASH 130/B)",
+              `<button class="btn btn-primary btn-sm font-weight-bold" onclick="DigitalDoctor.openCrossReferenceForm()">
+                <i class="fas fa-plus mr-1"></i> New Cross Reference
+               </button>
+               <button class="btn btn-outline-danger btn-sm font-weight-bold ml-2" onclick="DigitalDoctor.openPdfPrint()">
+                <i class="fas fa-print mr-1"></i> Print Referral Note
+               </button>`
+            );
+            docApi(DOC_URLS.crossref.list).done(r => {
+              body.empty();
+              if (!r.data || r.data.length === 0) {
+                body.html(`
+                  <div class="text-center p-5 text-muted">
+                    <i class="fas fa-exchange-alt fa-3x mb-3 text-primary opacity-50"></i>
+                    <h5>No cross reference / specialty referral recorded.</h5>
+                    <button class="btn btn-primary btn-sm mt-2 font-weight-bold" onclick="DigitalDoctor.openCrossReferenceForm()">
+                      <i class="fas fa-plus mr-1"></i> Create Cross Reference
+                    </button>
+                  </div>
+                `);
+                return;
+              }
+              r.data.forEach(x => {
+                body.append(`
+                  <div class="p-3 mb-3 border rounded bg-white shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-user-md mr-1"></i> ${escapeHtml(x.referred_consultant_name || 'Specialist Referral')} 
+                        <span class="badge badge-info ml-2">${x.speciality || 'Specialty'}</span>
+                        <span class="badge ${x.cross_reference_type === 'Emergency' ? 'badge-danger' : 'badge-light border'}">${x.cross_reference_type}</span>
+                      </h6>
+                      <div>
+                        <span class="text-muted small mr-2">Visit: <b>${x.visit_date || '—'} ${x.visit_time || ''}</b></span>
+                        <button class="btn btn-soft btn-sm text-danger" onclick="DigitalDoctor.deleteCrossref(${x.id})"><i class="fas fa-trash"></i></button>
+                      </div>
+                    </div>
+                    <div class="small mb-2"><b>Reason:</b> ${escapeHtml(x.reason_for_cross_reference)}</div>
+                    <div class="p-2 rounded bg-light small mb-2">
+                      <b>Referred Doctor's Notes:</b><br/>
+                      <span style="white-space: pre-wrap;">${escapeHtml(x.referred_doctor_notes || 'Pending visit note')}</span>
+                    </div>
+                    <div class="row small">
+                      <div class="col-md-6"><b>Impression:</b> ${escapeHtml(x.impression || '—')}</div>
+                      <div class="col-md-6"><b>Advice:</b> ${escapeHtml(x.advice || '—')}</div>
+                    </div>
+                    <div class="mt-2 text-muted small border-top pt-2 d-flex justify-content-between">
+                      <span>Disposition: <b>${x.refer_again_status || 'The Patient does not need to be referred again.'}</b></span>
+                      <span>Referring Consultant: <b>${escapeHtml(x.referring_consultant_name || 'Attending')}</b></span>
+                    </div>
+                  </div>
+                `);
+              });
+            });
+            break;
+
+          case 'mohandover':
+            setHead(
+              "Medical Officer Hand Over Sheet (PDF Page 7 - ASH/240/F)",
+              `<button class="btn btn-primary btn-sm font-weight-bold" onclick="DigitalDoctor.openMoHandoverForm()">
+                <i class="fas fa-plus mr-1"></i> New MO Shift Handover
+               </button>
+               <button class="btn btn-outline-danger btn-sm font-weight-bold ml-2" onclick="DigitalDoctor.openPdfPrint()">
+                <i class="fas fa-print mr-1"></i> Print Handover Sheet
+               </button>`
+            );
+            docApi(DOC_URLS.mohandover.list).done(r => {
+              body.empty();
+              if (!r.data || r.data.length === 0) {
+                body.html(`
+                  <div class="text-center p-5 text-muted">
+                    <i class="fas fa-clipboard-list fa-3x mb-3 text-primary opacity-50"></i>
+                    <h5>No MO Shift Handovers logged yet.</h5>
+                    <button class="btn btn-primary btn-sm mt-2 font-weight-bold" onclick="DigitalDoctor.openMoHandoverForm()">
+                      <i class="fas fa-plus mr-1"></i> Record Shift Handover
+                    </button>
+                  </div>
+                `);
+                return;
+              }
+              r.data.forEach(h => {
+                body.append(`
+                  <div class="p-3 mb-3 border rounded bg-white shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <h6 class="m-0 font-weight-bold">Date: ${h.handover_date} · Patient: ${escapeHtml(h.patient_name || PNM)}</h6>
+                      <button class="btn btn-soft btn-sm text-danger" onclick="DigitalDoctor.deleteMoHandover(${h.id})"><i class="fas fa-trash"></i></button>
+                    </div>
+                    <div class="small text-muted mb-2">Diagnosis: <b>${escapeHtml(h.diagnosis || '—')}</b> | Recorded by: <b>${escapeHtml(h.recorded_by || 'MO')}</b></div>
+                    <div class="row">
+                      <div class="col-md-4 mb-2">
+                        <div class="p-2 border rounded bg-light" style="min-height: 120px;">
+                          <b class="text-primary small text-uppercase">Morning Shift:</b>
+                          <div class="small mt-1" style="white-space: pre-wrap;">${escapeHtml(h.morning_shift_notes || '—')}</div>
+                        </div>
+                      </div>
+                      <div class="col-md-4 mb-2">
+                        <div class="p-2 border rounded bg-light" style="min-height: 120px;">
+                          <b class="text-warning small text-uppercase">Evening Shift:</b>
+                          <div class="small mt-1" style="white-space: pre-wrap;">${escapeHtml(h.evening_shift_notes || '—')}</div>
+                        </div>
+                      </div>
+                      <div class="col-md-4 mb-2">
+                        <div class="p-2 border rounded bg-light" style="min-height: 120px;">
+                          <b class="text-dark small text-uppercase">Night Shift:</b>
+                          <div class="small mt-1" style="white-space: pre-wrap;">${escapeHtml(h.night_shift_notes || '—')}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                `);
+              });
+            });
+            break;
+
+          case 'sbar':
+            setHead(
+              "Primary SBAR Scale by Medical Officer (PDF Page 8 - F:/ASH/MO/HO-1)",
+              `<button class="btn btn-primary btn-sm font-weight-bold" onclick="DigitalDoctor.openSbarForm()">
+                <i class="fas fa-plus mr-1"></i> New SBAR Handover
+               </button>
+               <button class="btn btn-outline-danger btn-sm font-weight-bold ml-2" onclick="DigitalDoctor.openPdfPrint()">
+                <i class="fas fa-print mr-1"></i> Print SBAR Form
+               </button>`
+            );
+            docApi(DOC_URLS.sbar.list).done(r => {
+              body.empty();
+              if (!r.data || r.data.length === 0) {
+                body.html(`
+                  <div class="text-center p-5 text-muted">
+                    <i class="fas fa-project-diagram fa-3x mb-3 text-primary opacity-50"></i>
+                    <h5>No SBAR Shift Handovers recorded yet.</h5>
+                    <button class="btn btn-primary btn-sm mt-2 font-weight-bold" onclick="DigitalDoctor.openSbarForm()">
+                      <i class="fas fa-plus mr-1"></i> Record SBAR Scale
+                    </button>
+                  </div>
+                `);
+                return;
+              }
+              r.data.forEach(s => {
+                body.append(`
+                  <div class="p-3 mb-3 border rounded bg-white shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <h6 class="m-0 font-weight-bold">
+                        <span class="badge badge-dark">${s.shift.toUpperCase()} SHIFT</span>
+                        Date: ${s.handover_date} · Room/Bed: ${escapeHtml(s.room_bed_no || PBED)}
+                      </h6>
+                      <button class="btn btn-soft btn-sm text-danger" onclick="DigitalDoctor.deleteSbar(${s.id})"><i class="fas fa-trash"></i></button>
+                    </div>
+                    <div class="row small mb-2">
+                      <div class="col-md-6"><b>Current Condition:</b> ${escapeHtml(s.current_condition || '—')}</div>
+                      <div class="col-md-6"><b>Condition Day/Night:</b> ${escapeHtml(s.condition_day_night || '—')}</div>
+                      <div class="col-md-6 mt-1"><b>Primary Diagnosis:</b> ${escapeHtml(s.primary_diagnosis || '—')}</div>
+                      <div class="col-md-6 mt-1"><b>Procedure Done:</b> ${escapeHtml(s.procedure_done || '—')}</div>
+                      <div class="col-md-6 mt-1"><b>Investigation Done:</b> ${escapeHtml(s.investigation_done || '—')}</div>
+                      <div class="col-md-6 mt-1"><b>Co-Morbid Conditions:</b> ${escapeHtml(s.comorbid_conditions || '—')}</div>
+                      <div class="col-md-6 mt-1"><b>Collect Reports Of:</b> ${escapeHtml(s.collect_reports_of || '—')}</div>
+                      <div class="col-md-6 mt-1"><b>Inform GC to Doctor:</b> ${escapeHtml(s.inform_gc_to_doctor || '—')}</div>
+                    </div>
+                    <div class="border-top pt-2 d-flex justify-content-between align-items-center small text-muted">
+                      <span>Plan Discharge: <b>${s.plan_discharge || 'No'}</b></span>
+                      <span>Given by: <b>${escapeHtml(s.given_by_eid || 'MO')}</b> (${s.given_by_time || '—'}) · Taken by: <b>${escapeHtml(s.taken_by_eid || 'MO')}</b> (${s.taken_by_time || '—'})</span>
+                    </div>
+                  </div>
+                `);
+              });
+            });
+            break;
+
+          case 'dvt':
+            setHead(
+              "Wells Model for Predicting DVT Probability (PDF Page 3)",
+              `<button class="btn btn-primary btn-sm font-weight-bold" onclick="DigitalDoctor.openInitialAssessmentForm('wells-section')">
+                <i class="fas fa-calculator mr-1"></i> Recalculate DVT Score
+               </button>`
+            );
+            docApi(DOC_URLS.initial.list).done(r => {
+              body.empty();
+              const it = (r.data && r.data[0]) ? r.data[0] : null;
+              const w = it?.wells_dvt || {};
+              const score = w.total_score ?? 0;
+              const isLikely = score >= 2;
+              body.html(`
+                <div class="p-3 bg-light border rounded mb-3">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h5 class="m-0 font-weight-bold">Current DVT Risk Score: <span class="badge ${isLikely ? 'badge-danger' : 'badge-success'}">${score} Points</span></h5>
+                      <div class="small mt-1 text-muted">Stratification: <b class="${isLikely ? 'text-danger' : 'text-success'}">${isLikely ? 'DVT Likely (≥ 2 points)' : 'DVT Unlikely (< 2 points)'}</b></div>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="DigitalDoctor.openInitialAssessmentForm('wells-section')">Update Score</button>
+                  </div>
+                </div>
+                <table class="table-doc">
+                  <thead>
+                    <tr><th>Clinical Feature</th><th style="width:100px;text-align:center;">Points</th><th style="width:120px;text-align:center;">Assessed</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Active cancer (treatment ongoing, within 6 months or palliative)</td><td class="text-center font-weight-bold">1</td><td class="text-center">${w.active_cancer ? '<i class="fas fa-check text-danger"></i> Yes' : 'No'}</td></tr>
+                    <tr><td>Paralysis, paresis or recent plaster immobilisation of lower extremity</td><td class="text-center font-weight-bold">1</td><td class="text-center">${w.paralysis ? '<i class="fas fa-check text-danger"></i> Yes' : 'No'}</td></tr>
+                    <tr><td>Recently bedridden for ≥3 days, or major surgery within 12 weeks requiring anaesthesia</td><td class="text-center font-weight-bold">1</td><td class="text-center">${w.bedridden ? '<i class="fas fa-check text-danger"></i> Yes' : 'No'}</td></tr>
+                    <tr><td>Localised tenderness along the distribution of the deep venous system</td><td class="text-center font-weight-bold">1</td><td class="text-center">${w.tenderness ? '<i class="fas fa-check text-danger"></i> Yes' : 'No'}</td></tr>
+                    <tr><td>Entire leg swollen</td><td class="text-center font-weight-bold">1</td><td class="text-center">${w.entire_leg_swollen ? '<i class="fas fa-check text-danger"></i> Yes' : 'No'}</td></tr>
+                    <tr><td>Calf swelling at least 3cm larger than asymptomatic side</td><td class="text-center font-weight-bold">1</td><td class="text-center">${w.calf_swelling ? '<i class="fas fa-check text-danger"></i> Yes' : 'No'}</td></tr>
+                    <tr><td>Pitting oedema confined to the symptomatic leg</td><td class="text-center font-weight-bold">1</td><td class="text-center">${w.pitting_oedema ? '<i class="fas fa-check text-danger"></i> Yes' : 'No'}</td></tr>
+                    <tr><td>Collateral superficial veins (non-varicose)</td><td class="text-center font-weight-bold">1</td><td class="text-center">${w.superficial_veins ? '<i class="fas fa-check text-danger"></i> Yes' : 'No'}</td></tr>
+                    <tr><td>Previously documented DVT</td><td class="text-center font-weight-bold">1</td><td class="text-center">${w.prev_dvt ? '<i class="fas fa-check text-danger"></i> Yes' : 'No'}</td></tr>
+                    <tr><td>An alternative diagnosis is at least as likely as DVT</td><td class="text-center font-weight-bold">-2</td><td class="text-center">${w.alt_diagnosis ? '<i class="fas fa-check text-success"></i> Yes (-2)' : 'No'}</td></tr>
+                  </tbody>
+                </table>
+              `);
+            });
+            break;
+
+          case 'blood':
+            setHead(
+              "Blood Transfusion & Adverse Effects Form (PDF Page 9 - ASH/141)",
+              `<button class="btn btn-primary btn-sm font-weight-bold" onclick="DigitalDoctor.openBloodTransfusionForm()">
+                <i class="fas fa-plus mr-1"></i> New Blood Transfusion Record
+               </button>
+               <button class="btn btn-outline-danger btn-sm font-weight-bold ml-2" onclick="DigitalDoctor.openPdfPrint()">
+                <i class="fas fa-print mr-1"></i> Print Form ASH/141
+               </button>`
+            );
+            docApi(DOC_URLS.blood.list).done(r => {
+              body.empty();
+              if (!r.data || r.data.length === 0) {
+                body.html(`
+                  <div class="text-center p-5 text-muted">
+                    <i class="fas fa-tint fa-3x mb-3 text-danger opacity-50"></i>
+                    <h5>No Blood Transfusion records logged for this admission.</h5>
+                    <button class="btn btn-danger btn-sm mt-2 font-weight-bold" onclick="DigitalDoctor.openBloodTransfusionForm()">
+                      <i class="fas fa-plus mr-1"></i> Record Blood Transfusion
+                    </button>
+                  </div>
+                `);
+                return;
+              }
+              r.data.forEach(bt => {
+                body.append(`
+                  <div class="p-3 mb-3 border rounded bg-white shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <h6 class="m-0 font-weight-bold text-danger">
+                        <i class="fas fa-tint mr-1"></i> Transfusion #${bt.transfusion_number} · Bag No: ${escapeHtml(bt.blood_bag_no || '—')} (${bt.product_name})
+                        <span class="badge ${bt.adverse_reaction_flag === 'Adverse Reaction' ? 'badge-danger' : 'badge-success'} ml-2">${bt.adverse_reaction_flag}</span>
+                      </h6>
+                      <div>
+                        <span class="text-muted small mr-2">Date: ${bt.transfusion_date} ${bt.transfusion_time}</span>
+                        <button class="btn btn-soft btn-sm text-danger" onclick="DigitalDoctor.deleteBlood(${bt.id})"><i class="fas fa-trash"></i></button>
+                      </div>
+                    </div>
+                    <div class="row small mb-2">
+                      <div class="col-md-3">Blood Group: <b>${escapeHtml(bt.patient_blood_group || '—')}</b></div>
+                      <div class="col-md-3">Product Group: <b>${escapeHtml(bt.product_blood_group || '—')}</b></div>
+                      <div class="col-md-3">Blood Bank: <b>${escapeHtml(bt.blood_bank_name || '—')}</b></div>
+                      <div class="col-md-3">Expiry: <b>${escapeHtml(bt.expiry_date || '—')}</b></div>
+                    </div>
+                    <div class="p-2 border rounded bg-light small mb-2">
+                      <b>Consultant Order:</b> Component: ${bt.order_component_type} | Units: ${bt.order_units} | Flow Rate: ${bt.order_flow_rate || '—'} | Indication: ${escapeHtml(bt.indication || '—')}
+                    </div>
+                    <div class="border-top pt-2 d-flex justify-content-between small text-muted">
+                      <span>Checked by Doctor: <b>${escapeHtml(bt.blood_checked_by_doctor || 'MO')}</b> (EID: ${escapeHtml(bt.doctor_eid || '—')})</span>
+                      <span>Nurse: <b>${escapeHtml(bt.unit_nurse || 'Staff Nurse')}</b> · Started: ${bt.bt_started_at || '—'} · Finished: ${bt.bt_stopped_at || '—'}</span>
+                    </div>
+                  </div>
+                `);
+              });
+            });
+            break;
+        }
+      }
+
+      function renderInitialAssessmentView(container, it) {
+        const al = it.allergies || {};
+        const g = it.general_exam || {};
+        const s = it.systemic_exam || {};
+        const h = it.habit_history || {};
+        const m = it.past_medical_history || {};
+        const w = it.wells_dvt || {};
+
+        container.html(`
+          <div class="p-3 bg-light border rounded mb-3 d-flex justify-content-between align-items-center">
+            <div>
+              <h5 class="m-0 font-weight-bold text-dark">Initial Assessment Record</h5>
+              <div class="small text-muted">Recorded: <b>${it.assessment_date} ${it.assessment_time}</b> · Admitting Consultant: <b>${escapeHtml(it.admitting_consultant)}</b> · Dept: <b>${escapeHtml(it.department || 'General Surgery')}</b></div>
+            </div>
+            <button class="btn btn-primary btn-sm font-weight-bold" onclick="DigitalDoctor.openInitialAssessmentForm()">
+              <i class="fas fa-edit mr-1"></i> Edit Assessment
+            </button>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <div class="p-3 border rounded h-100 bg-white shadow-sm">
+                <b class="text-primary small text-uppercase">Chief Complaints:</b>
+                <div class="small mt-1" style="white-space: pre-wrap;">${escapeHtml(it.chief_complaints || 'None recorded')}</div>
+                <hr class="my-2"/>
+                <b class="text-primary small text-uppercase">Past History of Illness:</b>
+                <div class="small mt-1" style="white-space: pre-wrap;">${escapeHtml(it.past_history_illness || 'None recorded')}</div>
+                <hr class="my-2"/>
+                <b class="text-primary small text-uppercase">Allergies:</b>
+                <div class="small mt-1">
+                  ${al.blood_transfusion ? '<span class="badge badge-danger mr-1">Blood Transfusion</span>' : ''}
+                  ${al.drug ? '<span class="badge badge-danger mr-1">Drug</span>' : ''}
+                  ${al.food ? '<span class="badge badge-warning mr-1">Food & Beverages</span>' : ''}
+                  ${al.not_known ? '<span class="badge badge-secondary mr-1">Not Known</span>' : ''}
+                  ${al.others ? `<span class="badge badge-info mr-1">Others: ${escapeHtml(al.others_detail || '')}</span>` : ''}
+                  ${(!al.blood_transfusion && !al.drug && !al.food && !al.not_known && !al.others) ? 'No known allergies' : ''}
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <div class="p-3 border rounded h-100 bg-white shadow-sm">
+                <b class="text-primary small text-uppercase">General Examination & Vitals:</b>
+                <div class="row small mt-2">
+                  <div class="col-4">SPO2: <b>${g.spo2 || '—'}%</b></div>
+                  <div class="col-4">Temp: <b>${g.temp || '—'}°F</b></div>
+                  <div class="col-4">Pulse: <b>${g.pulse || '—'} bpm</b></div>
+                  <div class="col-4 mt-1">BP: <b>${g.bp || '—'}</b></div>
+                  <div class="col-4 mt-1">RR: <b>${g.rr || '—'}/min</b></div>
+                  <div class="col-4 mt-1">BMI: <b>${g.bmi || '—'}</b></div>
+                  <div class="col-6 mt-1">WT: <b>${g.weight || '—'} kg</b></div>
+                  <div class="col-6 mt-1">Height: <b>${g.height || '—'}</b></div>
+                  <div class="col-12 mt-1">Pain Score: <b>${g.pain_score ?? '—'}/10</b> (${escapeHtml(g.pain_location || 'General')})</div>
+                </div>
+                <hr class="my-2"/>
+                <div class="small">
+                  Ankle Oedema: <b>${g.ankle_oedema || 'No'}</b> · Emaciated: <b>${g.emaciated || 'No'}</b> · Jaundice: <b>${g.jaundice || 'No'}</b>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-12 mb-3">
+              <div class="p-3 border rounded bg-white shadow-sm">
+                <b class="text-primary small text-uppercase">Provisional Diagnosis & Treatment Plan:</b>
+                <div class="row small mt-2">
+                  <div class="col-md-4">
+                    <b>Provisional Diagnosis:</b>
+                    <p class="mb-0 text-dark">${escapeHtml(it.provisional_diagnosis || '—')}</p>
+                  </div>
+                  <div class="col-md-4">
+                    <b>Investigations Advised:</b>
+                    <p class="mb-0 text-dark">${escapeHtml(it.investigations_advised || '—')}</p>
+                  </div>
+                  <div class="col-md-4">
+                    <b>Plan of Treatment:</b>
+                    <p class="mb-0 text-dark">${escapeHtml(it.plan_of_treatment || '—')}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `);
+      }
+
+      // Drawer Openers
+      function openInitialAssessmentForm() {
+        const it = activeRecordCache || {};
+        const al = it.allergies || {};
+        const g = it.general_exam || {};
+        const s = it.systemic_exam || {};
+        const h = it.habit_history || {};
+        const m = it.past_medical_history || {};
+        const w = it.wells_dvt || {};
+        const dec = it.informant_declaration || {};
+
+        openDocDrawer(
+          "Doctor Initial Assessment on Admission (NABH Pages 1–3)",
+          "Anand Surgical Hospital Pvt Ltd",
+          `
+          <form id="docInitialForm">
+            <input type="hidden" name="id" value="${it.id || ''}"/>
+
+            <div class="doc-section-title"><i class="fas fa-user mr-1"></i> Patient & Admission Meta</div>
+            <div class="form-row">
+              <div class="form-group col-md-3">
+                <label class="small font-weight-bold">Assessment Date</label>
+                <input type="date" name="assessment_date" class="form-control form-control-sm" value="${it.assessment_date || new Date().toISOString().substring(0, 10)}"/>
+              </div>
+              <div class="form-group col-md-3">
+                <label class="small font-weight-bold">Time</label>
+                <input type="time" name="assessment_time" class="form-control form-control-sm" value="${it.assessment_time || '09:00'}"/>
+              </div>
+              <div class="form-group col-md-3">
+                <label class="small font-weight-bold">Department</label>
+                <input type="text" name="department" class="form-control form-control-sm" value="${escapeHtml(it.department || 'General Surgery')}"/>
+              </div>
+              <div class="form-group col-md-3">
+                <label class="small font-weight-bold">Admitting Consultant</label>
+                <input type="text" name="admitting_consultant" class="form-control form-control-sm" value="${escapeHtml(it.admitting_consultant || 'Dr. Sanghavi')}"/>
+              </div>
+            </div>
+
+            <div class="doc-section-title"><i class="fas fa-exclamation-triangle mr-1"></i> Allergies (Check all that apply)</div>
+            <div class="d-flex flex-wrap gap-3 small mb-2">
+              <label class="mr-3"><input type="checkbox" name="allergies_blood" ${al.blood_transfusion ? 'checked' : ''}/> Blood Transfusion</label>
+              <label class="mr-3"><input type="checkbox" name="allergies_drug" ${al.drug ? 'checked' : ''}/> Drug</label>
+              <label class="mr-3"><input type="checkbox" name="allergies_food" ${al.food ? 'checked' : ''}/> Food &amp; Beverages</label>
+              <label class="mr-3"><input type="checkbox" name="allergies_not_known" ${al.not_known ? 'checked' : ''}/> Not Known</label>
+              <label class="mr-3"><input type="checkbox" name="allergies_others" id="allergies_others_chk" ${al.others ? 'checked' : ''}/> Others (Specify)</label>
+            </div>
+            <input type="text" name="allergies_others_detail" class="form-control form-control-sm mb-3" placeholder="Specify other allergies..." value="${escapeHtml(al.others_detail || '')}"/>
+
+            <div class="doc-section-title"><i class="fas fa-history mr-1"></i> Clinical &amp; Habit History</div>
+            <div class="form-group">
+              <label class="small font-weight-bold">Chief Complaints</label>
+              <textarea name="chief_complaints" class="form-control form-control-sm" rows="2">${escapeHtml(it.chief_complaints || '')}</textarea>
+            </div>
+            <div class="form-group">
+              <label class="small font-weight-bold">Past History of Illness</label>
+              <textarea name="past_history_illness" class="form-control form-control-sm" rows="2">${escapeHtml(it.past_history_illness || '')}</textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label class="small font-weight-bold">Diet</label>
+                <input type="text" name="diet" class="form-control form-control-sm" value="${escapeHtml(it.diet || 'Regular Normal Diet')}"/>
+              </div>
+              <div class="form-group col-md-6">
+                <label class="small font-weight-bold">Physical Activity</label>
+                <input type="text" name="physical_activity" class="form-control form-control-sm" value="${escapeHtml(it.physical_activity || 'Moderate')}"/>
+              </div>
+            </div>
+
+            <div class="doc-section-title"><i class="fas fa-smoking mr-1"></i> Habit History Table</div>
+            <table class="table-doc">
+              <thead><tr><th>Type</th><th>Yes/No</th><th>Since / Duration</th><th>Frequency</th><th>Quit Since</th></tr></thead>
+              <tbody>
+                <tr><td>Cigarette / Beedi</td><td><select name="habit_cig_opt" class="form-control form-control-sm"><option value="No">No</option><option value="Yes" ${h.cig?.opt === 'Yes' ? 'selected' : ''}>Yes</option></select></td><td><input type="text" name="habit_cig_since" class="form-control form-control-sm" value="${escapeHtml(h.cig?.since || '')}"/></td><td><input type="text" name="habit_cig_freq" class="form-control form-control-sm" value="${escapeHtml(h.cig?.freq || '')}"/></td><td><input type="text" name="habit_cig_quit" class="form-control form-control-sm" value="${escapeHtml(h.cig?.quit || '')}"/></td></tr>
+                <tr><td>Tobacco Chewing</td><td><select name="habit_tob_opt" class="form-control form-control-sm"><option value="No">No</option><option value="Yes" ${h.tob?.opt === 'Yes' ? 'selected' : ''}>Yes</option></select></td><td><input type="text" name="habit_tob_since" class="form-control form-control-sm" value="${escapeHtml(h.tob?.since || '')}"/></td><td><input type="text" name="habit_tob_freq" class="form-control form-control-sm" value="${escapeHtml(h.tob?.freq || '')}"/></td><td><input type="text" name="habit_tob_quit" class="form-control form-control-sm" value="${escapeHtml(h.tob?.quit || '')}"/></td></tr>
+                <tr><td>Alcohol</td><td><select name="habit_alc_opt" class="form-control form-control-sm"><option value="No">No</option><option value="Yes" ${h.alc?.opt === 'Yes' ? 'selected' : ''}>Yes</option></select></td><td><input type="text" name="habit_alc_since" class="form-control form-control-sm" value="${escapeHtml(h.alc?.since || '')}"/></td><td><input type="text" name="habit_alc_freq" class="form-control form-control-sm" value="${escapeHtml(h.alc?.freq || '')}"/></td><td><input type="text" name="habit_alc_quit" class="form-control form-control-sm" value="${escapeHtml(h.alc?.quit || '')}"/></td></tr>
+                <tr><td>Drugs</td><td><select name="habit_drg_opt" class="form-control form-control-sm"><option value="No">No</option><option value="Yes" ${h.drg?.opt === 'Yes' ? 'selected' : ''}>Yes</option></select></td><td><input type="text" name="habit_drg_since" class="form-control form-control-sm" value="${escapeHtml(h.drg?.since || '')}"/></td><td><input type="text" name="habit_drg_freq" class="form-control form-control-sm" value="${escapeHtml(h.drg?.freq || '')}"/></td><td><input type="text" name="habit_drg_quit" class="form-control form-control-sm" value="${escapeHtml(h.drg?.quit || '')}"/></td></tr>
+              </tbody>
+            </table>
+
+            <div class="doc-section-title"><i class="fas fa-heartbeat mr-1"></i> Past Medical History</div>
+            <table class="table-doc">
+              <thead><tr><th>Particulars</th><th>Yes/No</th><th>Since When</th><th>Therapy</th></tr></thead>
+              <tbody>
+                <tr><td>Hypertension</td><td><select name="med_htn_opt" class="form-control form-control-sm"><option value="No">No</option><option value="Yes" ${m.htn?.opt === 'Yes' ? 'selected' : ''}>Yes</option></select></td><td><input type="text" name="med_htn_since" class="form-control form-control-sm" value="${escapeHtml(m.htn?.since || '')}"/></td><td><input type="text" name="med_htn_th" class="form-control form-control-sm" value="${escapeHtml(m.htn?.th || '')}"/></td></tr>
+                <tr><td>Diabetes</td><td><select name="med_dm_opt" class="form-control form-control-sm"><option value="No">No</option><option value="Yes" ${m.dm?.opt === 'Yes' ? 'selected' : ''}>Yes</option></select></td><td><input type="text" name="med_dm_since" class="form-control form-control-sm" value="${escapeHtml(m.dm?.since || '')}"/></td><td><input type="text" name="med_dm_th" class="form-control form-control-sm" value="${escapeHtml(m.dm?.th || '')}"/></td></tr>
+                <tr><td>Cardiac Disease</td><td><select name="med_cad_opt" class="form-control form-control-sm"><option value="No">No</option><option value="Yes" ${m.cad?.opt === 'Yes' ? 'selected' : ''}>Yes</option></select></td><td><input type="text" name="med_cad_since" class="form-control form-control-sm" value="${escapeHtml(m.cad?.since || '')}"/></td><td><input type="text" name="med_cad_th" class="form-control form-control-sm" value="${escapeHtml(m.cad?.th || '')}"/></td></tr>
+                <tr><td>COPD / Asthma</td><td><select name="med_copd_opt" class="form-control form-control-sm"><option value="No">No</option><option value="Yes" ${m.copd?.opt === 'Yes' ? 'selected' : ''}>Yes</option></select></td><td><input type="text" name="med_copd_since" class="form-control form-control-sm" value="${escapeHtml(m.copd?.since || '')}"/></td><td><input type="text" name="med_copd_th" class="form-control form-control-sm" value="${escapeHtml(m.copd?.th || '')}"/></td></tr>
+                <tr><td>Tuberculosis</td><td><select name="med_tb_opt" class="form-control form-control-sm"><option value="No">No</option><option value="Yes" ${m.tb?.opt === 'Yes' ? 'selected' : ''}>Yes</option></select></td><td><input type="text" name="med_tb_since" class="form-control form-control-sm" value="${escapeHtml(m.tb?.since || '')}"/></td><td><input type="text" name="med_tb_th" class="form-control form-control-sm" value="${escapeHtml(m.tb?.th || '')}"/></td></tr>
+                <tr><td>Cancer</td><td><select name="med_ca_opt" class="form-control form-control-sm"><option value="No">No</option><option value="Yes" ${m.ca?.opt === 'Yes' ? 'selected' : ''}>Yes</option></select></td><td><input type="text" name="med_ca_since" class="form-control form-control-sm" value="${escapeHtml(m.ca?.since || '')}"/></td><td><input type="text" name="med_ca_th" class="form-control form-control-sm" value="${escapeHtml(m.ca?.th || '')}"/></td></tr>
+              </tbody>
+            </table>
+
+            <div class="doc-section-title"><i class="fas fa-user-check mr-1"></i> General Examination</div>
+            <div class="form-row">
+              <div class="form-group col-md-3"><label class="small font-weight-bold">SPO2 (%)</label><input type="text" name="g_spo2" class="form-control form-control-sm" value="${g.spo2 || '98'}"/></div>
+              <div class="form-group col-md-3"><label class="small font-weight-bold">Temp (°F)</label><input type="text" name="g_temp" class="form-control form-control-sm" value="${g.temp || '98.6'}"/></div>
+              <div class="form-group col-md-3"><label class="small font-weight-bold">Pulse (bpm)</label><input type="text" name="g_pulse" class="form-control form-control-sm" value="${g.pulse || '78'}"/></div>
+              <div class="form-group col-md-3"><label class="small font-weight-bold">BP (mmHg)</label><input type="text" name="g_bp" class="form-control form-control-sm" value="${g.bp || '120/80'}"/></div>
+              <div class="form-group col-md-3"><label class="small font-weight-bold">RR (/min)</label><input type="text" name="g_rr" class="form-control form-control-sm" value="${g.rr || '18'}"/></div>
+              <div class="form-group col-md-3"><label class="small font-weight-bold">Weight (kg)</label><input type="text" name="g_weight" id="calc_wt" class="form-control form-control-sm" value="${g.weight || '68'}"/></div>
+              <div class="form-group col-md-3"><label class="small font-weight-bold">Height (cm)</label><input type="text" name="g_height" id="calc_ht" class="form-control form-control-sm" value="${g.height || '170'}"/></div>
+              <div class="form-group col-md-3"><label class="small font-weight-bold">BMI</label><input type="text" name="g_bmi" id="calc_bmi" class="form-control form-control-sm" value="${g.bmi || '23.5'}"/></div>
+              <div class="form-group col-md-6"><label class="small font-weight-bold">Pain Score (0 to 10)</label><input type="number" min="0" max="10" name="g_pain_score" class="form-control form-control-sm" value="${g.pain_score ?? 0}"/></div>
+              <div class="form-group col-md-6"><label class="small font-weight-bold">Pain Location</label><input type="text" name="g_pain_location" class="form-control form-control-sm" value="${escapeHtml(g.pain_location || '')}"/></div>
+            </div>
+
+            <div class="doc-section-title"><i class="fas fa-stethoscope mr-1"></i> Systemic Examination (NAD = No Abnormality Detected)</div>
+            <table class="table-doc">
+              <thead><tr><th style="width:160px;">System</th><th style="width:80px;text-align:center;">NAD</th><th>Findings</th></tr></thead>
+              <tbody>
+                <tr><td>CVS</td><td class="text-center"><input type="checkbox" name="s_cvs_nad" ${s.cvs?.nad ? 'checked' : ''}/></td><td><input type="text" name="s_cvs_find" class="form-control form-control-sm" value="${escapeHtml(s.cvs?.findings || 'S1 S2 heard, no murmurs')}"/></td></tr>
+                <tr><td>Respiratory</td><td class="text-center"><input type="checkbox" name="s_resp_nad" ${s.resp?.nad ? 'checked' : ''}/></td><td><input type="text" name="s_resp_find" class="form-control form-control-sm" value="${escapeHtml(s.resp?.findings || 'Bilateral air entry equal, clear')}"/></td></tr>
+                <tr><td>CNS</td><td class="text-center"><input type="checkbox" name="s_cns_nad" ${s.cns?.nad ? 'checked' : ''}/></td><td><input type="text" name="s_cns_find" class="form-control form-control-sm" value="${escapeHtml(s.cns?.findings || 'Conscious, oriented to time, place, person')}"/></td></tr>
+                <tr><td>GI / Abdomen</td><td class="text-center"><input type="checkbox" name="s_gi_nad" ${s.gi?.nad ? 'checked' : ''}/></td><td><input type="text" name="s_gi_find" class="form-control form-control-sm" value="${escapeHtml(s.gi?.findings || 'Soft, non-tender, bowel sounds present')}"/></td></tr>
+                <tr><td>Genito Urinary</td><td class="text-center"><input type="checkbox" name="s_gu_nad" ${s.gu?.nad ? 'checked' : ''}/></td><td><input type="text" name="s_gu_find" class="form-control form-control-sm" value="${escapeHtml(s.gu?.findings || 'NAD')}"/></td></tr>
+              </tbody>
+            </table>
+
+            <div class="doc-section-title"><i class="fas fa-notes-medical mr-1"></i> Diagnosis &amp; Plan</div>
+            <div class="form-group">
+              <label class="small font-weight-bold">Provisional Diagnosis</label>
+              <textarea name="provisional_diagnosis" class="form-control form-control-sm" rows="2">${escapeHtml(it.provisional_diagnosis || '')}</textarea>
+            </div>
+            <div class="form-group">
+              <label class="small font-weight-bold">Investigations Advised</label>
+              <textarea name="investigations_advised" class="form-control form-control-sm" rows="2">${escapeHtml(it.investigations_advised || 'CBC, RFT, LFT, Chest X-Ray, ECG')}</textarea>
+            </div>
+            <div class="form-group">
+              <label class="small font-weight-bold">Plan of Treatment</label>
+              <textarea name="plan_of_treatment" class="form-control form-control-sm" rows="2">${escapeHtml(it.plan_of_treatment || '')}</textarea>
+            </div>
+
+            <div class="doc-section-title"><i class="fas fa-calculator mr-1"></i> Wells Model for Predicting DVT Probability (Page 3)</div>
+            <div class="p-2 border rounded bg-light mb-2 small">
+              <label class="d-block mb-1"><input type="checkbox" class="wells-item" data-points="1" name="w_active_cancer" ${w.active_cancer ? 'checked' : ''}/> Active cancer (ongoing, within 6 months or palliative) (+1)</label>
+              <label class="d-block mb-1"><input type="checkbox" class="wells-item" data-points="1" name="w_paralysis" ${w.paralysis ? 'checked' : ''}/> Paralysis, paresis or recent plaster immobilisation of lower extremity (+1)</label>
+              <label class="d-block mb-1"><input type="checkbox" class="wells-item" data-points="1" name="w_bedridden" ${w.bedridden ? 'checked' : ''}/> Bedridden for ≥3 days, or major surgery within 12 weeks (+1)</label>
+              <label class="d-block mb-1"><input type="checkbox" class="wells-item" data-points="1" name="w_tenderness" ${w.tenderness ? 'checked' : ''}/> Localised tenderness along distribution of deep venous system (+1)</label>
+              <label class="d-block mb-1"><input type="checkbox" class="wells-item" data-points="1" name="w_entire_leg_swollen" ${w.entire_leg_swollen ? 'checked' : ''}/> Entire leg swollen (+1)</label>
+              <label class="d-block mb-1"><input type="checkbox" class="wells-item" data-points="1" name="w_calf_swelling" ${w.calf_swelling ? 'checked' : ''}/> Calf swelling ≥3cm larger than asymptomatic side (+1)</label>
+              <label class="d-block mb-1"><input type="checkbox" class="wells-item" data-points="1" name="w_pitting_oedema" ${w.pitting_oedema ? 'checked' : ''}/> Pitting oedema confined to symptomatic leg (+1)</label>
+              <label class="d-block mb-1"><input type="checkbox" class="wells-item" data-points="1" name="w_superficial_veins" ${w.superficial_veins ? 'checked' : ''}/> Collateral superficial veins (non-varicose) (+1)</label>
+              <label class="d-block mb-1"><input type="checkbox" class="wells-item" data-points="1" name="w_prev_dvt" ${w.prev_dvt ? 'checked' : ''}/> Previously documented DVT (+1)</label>
+              <label class="d-block mb-1"><input type="checkbox" class="wells-item" data-points="-2" name="w_alt_diagnosis" ${w.alt_diagnosis ? 'checked' : ''}/> Alternative diagnosis at least as likely as DVT (-2)</label>
+              <div class="mt-2 pt-2 border-top d-flex justify-content-between align-items-center">
+                <span>Calculated Wells Score: <b id="wells_score_val">${w.total_score ?? 0}</b></span>
+                <span id="wells_risk_label" class="badge ${ (w.total_score ?? 0) >= 2 ? 'badge-danger' : 'badge-success'}">${ (w.total_score ?? 0) >= 2 ? 'DVT Likely (≥2)' : 'DVT Unlikely (<2)'}</span>
+              </div>
+            </div>
+
+            <div class="doc-section-title"><i class="fas fa-file-signature mr-1"></i> Informant Declaration (Gujarati &amp; English)</div>
+            <div class="p-2 border rounded bg-light small mb-2">
+              <p class="mb-1 text-muted">દર્દી / સંબંધી / દર્દીને લાવેલ વ્યક્તિ: મારી હાલની તથા ભૂતકાળની બીમારી મેં ઉપર જણાવેલ સંપૂર્ણ માહિતી મેં આપેલ છે.</p>
+              <div class="form-row">
+                <div class="form-group col-md-6"><label class="small font-weight-bold">Informant Name</label><input type="text" name="informant_name" class="form-control form-control-sm" value="${escapeHtml(dec.name || '')}"/></div>
+                <div class="form-group col-md-6"><label class="small font-weight-bold">Signature / Relation</label><input type="text" name="informant_relation" class="form-control form-control-sm" value="${escapeHtml(dec.relation || 'Self')}"/></div>
+              </div>
+            </div>
+          </form>
+          `
+        );
+
+        // Auto BMI calculation
+        $('#calc_wt, #calc_ht').on('input', function() {
+          const w = parseFloat($('#calc_wt').val());
+          const h = parseFloat($('#calc_ht').val()) / 100;
+          if (w > 0 && h > 0) {
+            $('#calc_bmi').val((w / (h * h)).toFixed(1));
+          }
+        });
+
+        // Live Wells Calculator
+        $('.wells-item').on('change', function() {
+          let score = 0;
+          $('.wells-item:checked').each(function() {
+            score += parseInt($(this).data('points'), 10);
+          });
+          $('#wells_score_val').text(score);
+          if (score >= 2) {
+            $('#wells_risk_label').attr('class', 'badge badge-danger').text('DVT Likely (≥2)');
+          } else {
+            $('#wells_risk_label').attr('class', 'badge badge-success').text('DVT Unlikely (<2)');
+          }
+        });
+      }
+
+      function openNewProgressNote() {
+        openDocDrawer(
+          "Attending Consultant's Note (ASH/115/F)",
+          "Anand Surgical Hospital Pvt Ltd",
+          `
+          <form id="docNoteForm">
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label class="small font-weight-bold">Date</label>
+                <input type="date" name="note_date" class="form-control form-control-sm" value="${new Date().toISOString().substring(0, 10)}"/>
+              </div>
+              <div class="form-group col-md-6">
+                <label class="small font-weight-bold">Time</label>
+                <input type="time" name="note_time" class="form-control form-control-sm" value="10:00"/>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="small font-weight-bold">Particulars (Consultant Clinical Assessment &amp; Instructions)</label>
+              <textarea name="particulars" class="form-control" rows="8" placeholder="Enter clinical progress note, operative findings, or treatment adjustment..."></textarea>
+            </div>
+            <div class="form-group">
+              <label class="small font-weight-bold">Consultant Name / Signature</label>
+              <input type="text" name="signature" class="form-control form-control-sm" value="Dr. Sanghavi, M.S."/>
+            </div>
+          </form>
+          `
+        );
+      }
+
+      function openCrossReferenceForm() {
+        openDocDrawer(
+          "Cross Reference Visit Note (ASH/130/F & ASH 130/B)",
+          "Anand Surgical Hospital Pvt Ltd",
+          `
+          <form id="docCrossrefForm">
+            <div class="doc-section-title"><i class="fas fa-paper-plane mr-1"></i> Referring Doctor Section</div>
+            <div class="form-group">
+              <label class="small font-weight-bold">Reason for Cross Reference</label>
+              <textarea name="reason_for_cross_reference" class="form-control form-control-sm" rows="2" placeholder="Clinical reason for specialist opinion..."></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label class="small font-weight-bold">Cross Reference Type</label>
+                <select name="cross_reference_type" class="form-control form-control-sm">
+                  <option value="Elective">Elective</option>
+                  <option value="Emergency">Emergency</option>
+                </select>
+              </div>
+              <div class="form-group col-md-6">
+                <label class="small font-weight-bold">Visit Type</label>
+                <select name="visit_type" class="form-control form-control-sm">
+                  <option value="Consultation Only">Consultation Only</option>
+                  <option value="Consultation and follow up">Consultation and follow up</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="doc-section-title"><i class="fas fa-user-md mr-1"></i> Specialist &amp; Findings</div>
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label class="small font-weight-bold">Name of Consultant</label>
+                <input type="text" name="referred_consultant_name" class="form-control form-control-sm" placeholder="Dr. Specialist"/>
+              </div>
+              <div class="form-group col-md-6">
+                <label class="small font-weight-bold">Speciality</label>
+                <input type="text" name="speciality" class="form-control form-control-sm" placeholder="Cardiology / Nephrology / Neurology"/>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="small font-weight-bold">Referred Doctor's Notes</label>
+              <textarea name="referred_doctor_notes" class="form-control form-control-sm" rows="3"></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label class="small font-weight-bold">Impression</label>
+                <input type="text" name="impression" class="form-control form-control-sm"/>
+              </div>
+              <div class="form-group col-md-6">
+                <label class="small font-weight-bold">Advice</label>
+                <input type="text" name="advice" class="form-control form-control-sm"/>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="small font-weight-bold">Follow-Up Disposition</label>
+              <select name="refer_again_status" class="form-control form-control-sm">
+                <option value="The Patient does not need to be referred again.">The Patient does not need to be referred again.</option>
+                <option value="The patient needs to be referred again">The patient needs to be referred again (Specify days)</option>
+              </select>
+            </div>
+          </form>
+          `
+        );
+      }
+
+      function openMoHandoverForm() {
+        openDocDrawer(
+          "Medical Officer Hand Over Sheet (ASH/240/F)",
+          "Anand Surgical Hospital Pvt Ltd",
+          `
+          <form id="docMoHandoverForm">
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label class="small font-weight-bold">Handover Date</label>
+                <input type="date" name="handover_date" class="form-control form-control-sm" value="${new Date().toISOString().substring(0, 10)}"/>
+              </div>
+              <div class="form-group col-md-6">
+                <label class="small font-weight-bold">Diagnosis</label>
+                <input type="text" name="diagnosis" class="form-control form-control-sm" placeholder="Admission diagnosis"/>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="small font-weight-bold text-primary">Morning Shift Handover</label>
+              <textarea name="morning_shift_notes" class="form-control form-control-sm" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+              <label class="small font-weight-bold text-warning">Evening Shift Handover</label>
+              <textarea name="evening_shift_notes" class="form-control form-control-sm" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+              <label class="small font-weight-bold text-dark">Night Shift Handover</label>
+              <textarea name="night_shift_notes" class="form-control form-control-sm" rows="3"></textarea>
+            </div>
+          </form>
+          `
+        );
+      }
+
+      function openSbarForm() {
+        openDocDrawer(
+          "Primary SBAR Scale by Medical Officer (F:/ASH/MO/HO-1)",
+          "Anand Surgical Hospital Pvt Ltd",
+          `
+          <form id="docSbarForm">
+            <div class="form-row">
+              <div class="form-group col-md-4">
+                <label class="small font-weight-bold">Shift</label>
+                <select name="shift" class="form-control form-control-sm">
+                  <option value="Morning">Morning Shift</option>
+                  <option value="Evening">Evening Shift</option>
+                  <option value="Night">Night Shift</option>
+                </select>
+              </div>
+              <div class="form-group col-md-4">
+                <label class="small font-weight-bold">Date</label>
+                <input type="date" name="handover_date" class="form-control form-control-sm" value="${new Date().toISOString().substring(0, 10)}"/>
+              </div>
+              <div class="form-group col-md-4">
+                <label class="small font-weight-bold">Room / Bed No</label>
+                <input type="text" name="room_bed_no" class="form-control form-control-sm" value="${PBED}"/>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="small font-weight-bold">Current Condition</label>
+              <input type="text" name="current_condition" class="form-control form-control-sm" placeholder="E.g., Stable, Post-op Day 1, Afebrile"/>
+            </div>
+            <div class="form-group">
+              <label class="small font-weight-bold">Today's Condition during Day/Night</label>
+              <textarea name="condition_day_night" class="form-control form-control-sm" rows="2"></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label class="small font-weight-bold">Primary Diagnosis</label>
+                <input type="text" name="primary_diagnosis" class="form-control form-control-sm"/>
+              </div>
+              <div class="form-group col-md-6">
+                <label class="small font-weight-bold">Procedure Done</label>
+                <input type="text" name="procedure_done" class="form-control form-control-sm"/>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label class="small font-weight-bold">Investigation Done</label>
+                <input type="text" name="investigation_done" class="form-control form-control-sm"/>
+              </div>
+              <div class="form-group col-md-6">
+                <label class="small font-weight-bold">Co-Morbid Conditions</label>
+                <input type="text" name="comorbid_conditions" class="form-control form-control-sm"/>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label class="small font-weight-bold">Sign Over Given By (E.I.D &amp; Time)</label>
+                <input type="text" name="given_by_eid" class="form-control form-control-sm" placeholder="E.g., DR102 / 08:00 AM"/>
+              </div>
+              <div class="form-group col-md-6">
+                <label class="small font-weight-bold">Sign Over Taken By (E.I.D &amp; Time)</label>
+                <input type="text" name="taken_by_eid" class="form-control form-control-sm" placeholder="E.g., DR105 / 08:05 AM"/>
+              </div>
+            </div>
+          </form>
+          `
+        );
+      }
+
+      function openBloodTransfusionForm() {
+        openDocDrawer(
+          "Blood Transfusion & Adverse Effects Form (ASH/141)",
+          "Anand Surgical Hospital Pvt Ltd",
+          `
+          <form id="docBloodForm">
+            <div class="doc-section-title"><i class="fas fa-tint mr-1"></i> Transfusion &amp; Bag Details</div>
+            <div class="form-row">
+              <div class="form-group col-md-3">
+                <label class="small font-weight-bold">Transfusion #</label>
+                <input type="text" name="transfusion_number" class="form-control form-control-sm" value="1"/>
+              </div>
+              <div class="form-group col-md-3">
+                <label class="small font-weight-bold">Blood Bag No</label>
+                <input type="text" name="blood_bag_no" class="form-control form-control-sm" placeholder="Bag identifier"/>
+              </div>
+              <div class="form-group col-md-3">
+                <label class="small font-weight-bold">Product</label>
+                <select name="product_name" class="form-control form-control-sm">
+                  <option value="PRC">Packed Red Cells (PRC)</option>
+                  <option value="Whole Blood">Whole Blood</option>
+                  <option value="FFP">Fresh Frozen Plasma (FFP)</option>
+                  <option value="Platelets">Platelets / CPP</option>
+                  <option value="Cryoprecipitate">Cryoprecipitate</option>
+                </select>
+              </div>
+              <div class="form-group col-md-3">
+                <label class="small font-weight-bold">Blood Group</label>
+                <input type="text" name="product_blood_group" class="form-control form-control-sm" placeholder="E.g., B Positive"/>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label class="small font-weight-bold">Blood Bank Name</label>
+                <input type="text" name="blood_bank_name" class="form-control form-control-sm" value="Red Cross Blood Center"/>
+              </div>
+              <div class="form-group col-md-6">
+                <label class="small font-weight-bold">Expiry Date</label>
+                <input type="date" name="expiry_date" class="form-control form-control-sm"/>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label class="small font-weight-bold">Blood Checked by Doctor (Name &amp; EID)</label>
+                <input type="text" name="blood_checked_by_doctor" class="form-control form-control-sm" value="Dr. Sanghavi (EID: 804)"/>
+              </div>
+              <div class="form-group col-md-6">
+                <label class="small font-weight-bold">Unit Nurse</label>
+                <input type="text" name="unit_nurse" class="form-control form-control-sm" value="Staff Nurse"/>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="small font-weight-bold">Adverse Reaction Status</label>
+              <select name="adverse_reaction_flag" class="form-control form-control-sm">
+                <option value="No Adverse Reaction">No Adverse Reaction</option>
+                <option value="Adverse Reaction">Adverse Reaction Observed (See protocol)</option>
+              </select>
+            </div>
+          </form>
+          `
+        );
+      }
+
+      // Save handler for all forms
+      function saveCurrent() {
+        let formId = '';
+        let url = '';
+
+        if (activeTab === 'initial' || activeTab === 'dvt') {
+          formId = '#docInitialForm';
+          url = DOC_URLS.initial.save;
+          const form = $(formId);
+          if (!form.length) return;
+
+          // Assemble JSON payloads for rich models
+          let wellsScore = 0;
+          form.find('.wells-item:checked').each(function() { wellsScore += parseInt($(this).data('points'), 10); });
+
+          const payload = {
+            id: form.find('[name="id"]').val() || undefined,
+            assessment_date: form.find('[name="assessment_date"]').val(),
+            assessment_time: form.find('[name="assessment_time"]').val(),
+            department: form.find('[name="department"]').val(),
+            admitting_consultant: form.find('[name="admitting_consultant"]').val(),
+            allergies: {
+              blood_transfusion: form.find('[name="allergies_blood"]').is(':checked'),
+              drug: form.find('[name="allergies_drug"]').is(':checked'),
+              food: form.find('[name="allergies_food"]').is(':checked'),
+              not_known: form.find('[name="allergies_not_known"]').is(':checked'),
+              others: form.find('[name="allergies_others"]').is(':checked'),
+              others_detail: form.find('[name="allergies_others_detail"]').val()
+            },
+            chief_complaints: form.find('[name="chief_complaints"]').val(),
+            past_history_illness: form.find('[name="past_history_illness"]').val(),
+            diet: form.find('[name="diet"]').val(),
+            physical_activity: form.find('[name="physical_activity"]').val(),
+            habit_history: {
+              cig: { opt: form.find('[name="habit_cig_opt"]').val(), since: form.find('[name="habit_cig_since"]').val(), freq: form.find('[name="habit_cig_freq"]').val(), quit: form.find('[name="habit_cig_quit"]').val() },
+              tob: { opt: form.find('[name="habit_tob_opt"]').val(), since: form.find('[name="habit_tob_since"]').val(), freq: form.find('[name="habit_tob_freq"]').val(), quit: form.find('[name="habit_tob_quit"]').val() },
+              alc: { opt: form.find('[name="habit_alc_opt"]').val(), since: form.find('[name="habit_alc_since"]').val(), freq: form.find('[name="habit_alc_freq"]').val(), quit: form.find('[name="habit_alc_quit"]').val() },
+              drg: { opt: form.find('[name="habit_drg_opt"]').val(), since: form.find('[name="habit_drg_since"]').val(), freq: form.find('[name="habit_drg_freq"]').val(), quit: form.find('[name="habit_drg_quit"]').val() }
+            },
+            past_medical_history: {
+              htn: { opt: form.find('[name="med_htn_opt"]').val(), since: form.find('[name="med_htn_since"]').val(), th: form.find('[name="med_htn_th"]').val() },
+              dm:  { opt: form.find('[name="med_dm_opt"]').val(), since: form.find('[name="med_dm_since"]').val(), th: form.find('[name="med_dm_th"]').val() },
+              cad: { opt: form.find('[name="med_cad_opt"]').val(), since: form.find('[name="med_cad_since"]').val(), th: form.find('[name="med_cad_th"]').val() },
+              copd:{ opt: form.find('[name="med_copd_opt"]').val(), since: form.find('[name="med_copd_since"]').val(), th: form.find('[name="med_copd_th"]').val() },
+              tb:  { opt: form.find('[name="med_tb_opt"]').val(), since: form.find('[name="med_tb_since"]').val(), th: form.find('[name="med_tb_th"]').val() },
+              ca:  { opt: form.find('[name="med_ca_opt"]').val(), since: form.find('[name="med_ca_since"]').val(), th: form.find('[name="med_ca_th"]').val() }
+            },
+            general_exam: {
+              spo2: form.find('[name="g_spo2"]').val(),
+              temp: form.find('[name="g_temp"]').val(),
+              pulse: form.find('[name="g_pulse"]').val(),
+              bp: form.find('[name="g_bp"]').val(),
+              rr: form.find('[name="g_rr"]').val(),
+              weight: form.find('[name="g_weight"]').val(),
+              height: form.find('[name="g_height"]').val(),
+              bmi: form.find('[name="g_bmi"]').val(),
+              pain_score: form.find('[name="g_pain_score"]').val(),
+              pain_location: form.find('[name="g_pain_location"]').val()
+            },
+            systemic_exam: {
+              cvs:  { nad: form.find('[name="s_cvs_nad"]').is(':checked'), findings: form.find('[name="s_cvs_find"]').val() },
+              resp: { nad: form.find('[name="s_resp_nad"]').is(':checked'), findings: form.find('[name="s_resp_find"]').val() },
+              cns:  { nad: form.find('[name="s_cns_nad"]').is(':checked'), findings: form.find('[name="s_cns_find"]').val() },
+              gi:   { nad: form.find('[name="s_gi_nad"]').is(':checked'), findings: form.find('[name="s_gi_find"]').val() },
+              gu:   { nad: form.find('[name="s_gu_nad"]').is(':checked'), findings: form.find('[name="s_gu_find"]').val() }
+            },
+            provisional_diagnosis: form.find('[name="provisional_diagnosis"]').val(),
+            investigations_advised: form.find('[name="investigations_advised"]').val(),
+            plan_of_treatment: form.find('[name="plan_of_treatment"]').val(),
+            wells_dvt: {
+              active_cancer: form.find('[name="w_active_cancer"]').is(':checked'),
+              paralysis: form.find('[name="w_paralysis"]').is(':checked'),
+              bedridden: form.find('[name="w_bedridden"]').is(':checked'),
+              tenderness: form.find('[name="w_tenderness"]').is(':checked'),
+              entire_leg_swollen: form.find('[name="w_entire_leg_swollen"]').is(':checked'),
+              calf_swelling: form.find('[name="w_calf_swelling"]').is(':checked'),
+              pitting_oedema: form.find('[name="w_pitting_oedema"]').is(':checked'),
+              superficial_veins: form.find('[name="w_superficial_veins"]').is(':checked'),
+              prev_dvt: form.find('[name="w_prev_dvt"]').is(':checked'),
+              alt_diagnosis: form.find('[name="w_alt_diagnosis"]').is(':checked'),
+              total_score: wellsScore
+            },
+            informant_declaration: {
+              name: form.find('[name="informant_name"]').val(),
+              relation: form.find('[name="informant_relation"]').val()
+            }
+          };
+
+          docApi(url, payload).done(r => {
+            toastr.success(r.msg || 'Saved successfully');
+            closeDocDrawer();
+            renderFeature();
+          }).fail(e => toastr.error(e.responseJSON?.msg || 'Error saving record'));
+          return;
+        }
+
+        if (activeTab === 'progress') { formId = '#docNoteForm'; url = DOC_URLS.progress.save; }
+        if (activeTab === 'crossref') { formId = '#docCrossrefForm'; url = DOC_URLS.crossref.save; }
+        if (activeTab === 'mohandover') { formId = '#docMoHandoverForm'; url = DOC_URLS.mohandover.save; }
+        if (activeTab === 'sbar') { formId = '#docSbarForm'; url = DOC_URLS.sbar.save; }
+        if (activeTab === 'blood') { formId = '#docBloodForm'; url = DOC_URLS.blood.save; }
+
+        const form = $(formId);
+        if (!form.length) return;
+        const serialized = {};
+        form.serializeArray().forEach(it => { serialized[it.name] = it.value; });
+
+        docApi(url, serialized).done(r => {
+          toastr.success(r.msg || 'Record saved successfully');
+          closeDocDrawer();
+          renderFeature();
+        }).fail(e => toastr.error(e.responseJSON?.msg || 'Error saving record'));
+      }
+
+      // Delete handlers
+      function deleteNote(id) {
+        Swal.fire({ title: 'Delete note?', text: 'Cannot be undone', icon: 'warning', showCancelButton: true }).then(r => {
+          if (r.isConfirmed) docApi(DOC_URLS.progress.del, { id }).done(() => renderFeature());
+        });
+      }
+      function deleteCrossref(id) {
+        Swal.fire({ title: 'Delete referral?', icon: 'warning', showCancelButton: true }).then(r => {
+          if (r.isConfirmed) docApi(DOC_URLS.crossref.del, { id }).done(() => renderFeature());
+        });
+      }
+      function deleteMoHandover(id) {
+        Swal.fire({ title: 'Delete handover?', icon: 'warning', showCancelButton: true }).then(r => {
+          if (r.isConfirmed) docApi(DOC_URLS.mohandover.del, { id }).done(() => renderFeature());
+        });
+      }
+      function deleteSbar(id) {
+        Swal.fire({ title: 'Delete SBAR record?', icon: 'warning', showCancelButton: true }).then(r => {
+          if (r.isConfirmed) docApi(DOC_URLS.sbar.del, { id }).done(() => renderFeature());
+        });
+      }
+      function deleteBlood(id) {
+        Swal.fire({ title: 'Delete Blood Transfusion record?', icon: 'warning', showCancelButton: true }).then(r => {
+          if (r.isConfirmed) docApi(DOC_URLS.blood.del, { id }).done(() => renderFeature());
+        });
+      }
+
+      // Initialize
+      $(document).ready(function() {
+        $('#docTabs .pill').on('click', function() {
+          switchTab($(this).data('tab'));
+        });
+        renderFeature();
+      });
+
+      return {
+        getActiveTab,
+        switchTab,
+        openPdfPrint,
+        openInitialAssessmentForm,
+        openNewProgressNote,
+        openCrossReferenceForm,
+        openMoHandoverForm,
+        openSbarForm,
+        openBloodTransfusionForm,
+        saveCurrent,
+        deleteNote,
+        deleteCrossref,
+        deleteMoHandover,
+        deleteSbar,
+        deleteBlood
+      };
+    })();
+  </script>
+</body>
+</html>
+

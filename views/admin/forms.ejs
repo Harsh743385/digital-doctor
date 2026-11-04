@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+</head>
+<body>
+  <%- include('../partials/navbar') %>
+
+  <div class="app-container">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+      <div>
+        <h2 style="font-size: 24px; margin: 0;">Dynamic Form Builder &amp; Versioning</h2>
+        <div style="color: var(--grey-500); font-size: 13px;">Design, configure, and publish clinical intake forms with multi-column layout, conditional rules, and versioning.</div>
+      </div>
+      <div>
+        <button class="btn btn-teal" onclick="openCreateFormModal()">
+          <i class="fas fa-plus mr-1"></i> Create Clinical Form
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="presco-card mb-4">
+      <div class="p-3">
+        <div class="row align-items-center">
+          <div class="col-md-5 mb-2 mb-md-0">
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <span class="input-group-text bg-white border-right-0"><i class="fas fa-search text-muted"></i></span>
+              </div>
+              <input type="text" id="formSearch" class="form-control border-left-0" placeholder="Search forms by title, slug, or description...">
+            </div>
+          </div>
+          <div class="col-md-3 col-6 mb-2 mb-md-0">
+            <select id="formStatusFilter" class="form-control">
+              <option value="">All Statuses</option>
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+              <option value="archived">Archived</option>
+            </select>
+          </div>
+          <div class="col-md-2 col-6 text-right">
+            <button class="btn btn-soft btn-block" onclick="loadForms()">
+              <i class="fas fa-sync-alt mr-1"></i> Refresh
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Forms Cards Grid -->
+    <div class="row" id="formsGrid">
+      <div class="col-12 text-center p-5">
+        <i class="fas fa-spinner fa-spin fa-2x text-teal"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Form Modal -->
+  <div class="modal fade" id="createFormModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title font-weight-bold">Create New Clinical Form</h5>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <form id="createFormForm" onsubmit="handleCreateForm(event)">
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="form-label">Form Title <span class="req">*</span></label>
+              <input type="text" id="newFormName" class="form-control" placeholder="e.g. Inpatient Admission Assessment" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Form URL Slug <span class="req">*</span> <span class="meta-hint">(kebab-case)</span></label>
+              <input type="text" id="newFormSlug" class="form-control" placeholder="e.g. inpatient-admission-assessment" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Category</label>
+              <input type="text" id="newFormCategory" class="form-control" placeholder="e.g. Nursing Assessment, ICU, Discharge">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Description &amp; Clinical Purpose</label>
+              <textarea id="newFormDesc" class="form-control" rows="3" placeholder="Brief explanation of clinical protocol..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-soft" data-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-teal">
+              <i class="fas fa-magic mr-1"></i> Create &amp; Launch Builder
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Versions Modal -->
+  <div class="modal fade" id="versionsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title font-weight-bold" id="versionsModalTitle">Version History</h5>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body" id="versionsModalBody">
+          <div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-soft" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('../partials/footer') %>
+
+  <script>
+    let allForms = [];
+
+    $(document).ready(function() {
+      loadForms();
+
+      $('#formSearch, #formStatusFilter').on('input change', function() {
+        filterForms();
+      });
+
+      $('#newFormName').on('input', function() {
+        const slug = $(this).val().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        $('#newFormSlug').val(slug);
+      });
+    });
+
+    function loadForms() {
+      $.getJSON('/api/admin/forms', function(res) {
+        if (res.success) {
+          allForms = res.data;
+          renderForms(allForms);
+        }
+      });
+    }
+
+    function renderForms(forms) {
+      const grid = $('#formsGrid').empty();
+      if (!forms || forms.length === 0) {
+        grid.html(`
+          <div class="col-12 text-center p-5 text-muted">
+            <i class="fas fa-file-medical fa-3x mb-3 opacity-40"></i>
+            <h4>No Clinical Forms Found</h4>
+            <p>Click "Create Clinical Form" to design your first dynamic assessment form.</p>
+          </div>
+        `);
+        return;
+      }
+
+      forms.forEach(f => {
+        const statusClass = f.status === 'published' ? 'published' : (f.status === 'draft' ? 'draft' : 'archived');
+        const card = $(`
+          <div class="col-lg-4 col-md-6 mb-4">
+            <div class="presco-card h-100 d-flex flex-column">
+              <div class="presco-card-header">
+                <div>
+                  <span class="badge-pill-tag ${statusClass} mr-1">${f.status}</span>
+                  <span class="badge-pill-tag category">${escapeHtml(f.category || 'Clinical')}</span>
+                </div>
+                <span class="badge badge-light font-weight-bold" style="font-size:12px;">v${f.version}</span>
+              </div>
+              <div class="presco-card-body flex-grow-1">
+                <h4 style="font-size:17px;margin-bottom:6px;">${escapeHtml(f.name)}</h4>
+                <div style="font-size:12px;color:var(--grey-500);font-family:monospace;margin-bottom:12px;">
+                  /forms/${escapeHtml(f.slug)}
+                </div>
+                <p style="font-size:13px;color:var(--grey-700);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:14px;">
+                  ${escapeHtml(f.description || 'No description provided.')}
+                </p>
+
+                <div class="d-flex align-items-center justify-content-between p-2 rounded" style="background:var(--grey-50);font-size:12px;">
+                  <div><b>${f.section_count}</b> section(s)</div>
+                  <div><b>${f.field_count}</b> field(s)</div>
+                  <div><b>${f.submission_count}</b> submission(s)</div>
+                </div>
+              </div>
+
+              <div class="p-3 border-top bg-light d-flex align-items-center justify-content-between gap-1">
+                <a href="/admin/forms/${f.id}/builder" class="btn btn-teal btn-sm">
+                  <i class="fas fa-tools mr-1"></i> Form Builder
+                </a>
+                <div class="d-flex gap-1">
+                  <a href="/forms/${f.slug}" target="_blank" class="btn btn-soft btn-sm" title="Live Preview">
+                    <i class="fas fa-external-link-alt"></i>
+                  </a>
+                  <a href="/admin/forms/${f.id}/submissions" class="btn btn-soft btn-sm" title="Submissions">
+                    <i class="fas fa-inbox"></i>
+                  </a>
+                  <button class="btn btn-soft btn-sm" onclick="showVersions(${f.id}, '${escapeHtml(f.name)}')" title="Version History">
+                    <i class="fas fa-code-branch"></i>
+                  </button>
+                  <button class="btn btn-soft btn-sm" onclick="cloneForm(${f.id})" title="Duplicate">
+                    <i class="fas fa-copy"></i>
+                  </button>
+                  <button class="btn btn-soft btn-sm text-danger" onclick="deleteForm(${f.id})" title="Delete">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `);
+        grid.append(card);
+      });
+    }
+
+    function filterForms() {
+      const q = $('#formSearch').val().toLowerCase().trim();
+      const status = $('#formStatusFilter').val();
+
+      const filtered = allForms.filter(f => {
+        const matchesQ = !q || f.name.toLowerCase().includes(q) || f.slug.toLowerCase().includes(q) || (f.description && f.description.toLowerCase().includes(q));
+        const matchesStatus = !status || f.status === status;
+        return matchesQ && matchesStatus;
+      });
+
+      renderForms(filtered);
+    }
+
+    function openCreateFormModal() {
+      $('#createFormForm')[0].reset();
+      $('#createFormModal').modal('show');
+    }
+
+    function handleCreateForm(e) {
+      e.preventDefault();
+      const name = $('#newFormName').val().trim();
+      const slug = $('#newFormSlug').val().trim();
+      const category = $('#newFormCategory').val().trim();
+      const description = $('#newFormDesc').val().trim();
+
+      $.ajax({
+        url: '/api/admin/forms',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ name, slug, category, description }),
+        success: function(res) {
+          if (res.success) {
+            toastr.success(res.msg);
+            window.location.href = `/admin/forms/${res.data.id}/builder`;
+          } else {
+            toastr.error(res.msg);
+          }
+        },
+        error: function(err) {
+          toastr.error(err.responseJSON?.msg || 'Error creating form');
+        }
+      });
+    }
+
+    function cloneForm(id) {
+      $.ajax({
+        url: `/api/admin/forms/${id}/clone`,
+        type: 'POST',
+        success: function(r) {
+          toastr.success(r.msg);
+          loadForms();
+        }
+      });
+    }
+
+    function deleteForm(id) {
+      Swal.fire({
+        title: 'Delete this form?',
+        text: 'All sections and configured fields will be removed.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Delete',
+        confirmButtonColor: '#E11D48'
+      }).then(res => {
+        if (res.isConfirmed) {
+          $.ajax({
+            url: `/api/admin/forms/${id}`,
+            type: 'DELETE',
+            success: function() {
+              toastr.success('Form deleted');
+              loadForms();
+            }
+          });
+        }
+      });
+    }
+
+    function showVersions(formId, formName) {
+      $('#versionsModalTitle').text('Version Snapshots: ' + formName);
+      $('#versionsModalBody').html('<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x"></i></div>');
+      $('#versionsModal').modal('show');
+
+      $.getJSON(`/api/admin/forms/${formId}/versions`, function(res) {
+        if (!res.success || res.data.length === 0) {
+          $('#versionsModalBody').html('<div class="p-4 text-center text-muted">No published version snapshots found yet.</div>');
+          return;
+        }
+
+        let html = '<div class="list-group">';
+        res.data.forEach(v => {
+          html += `
+            <div class="list-group-item d-flex align-items-center justify-content-between p-3">
+              <div>
+                <span class="badge badge-success font-weight-bold mr-2">Version ${v.version_number}</span>
+                <span class="text-muted" style="font-size:12px;">Published on ${new Date(v.published_at || v.created_at).toLocaleString()}</span>
+              </div>
+              <div>
+                <button class="btn btn-sm btn-soft text-danger" onclick="rollbackVersion(${formId}, ${v.id})">
+                  <i class="fas fa-history mr-1"></i> Rollback
+                </button>
+              </div>
+            </div>
+          `;
+        });
+        html += '</div>';
+        $('#versionsModalBody').html(html);
+      });
+    }
+
+    function rollbackVersion(formId, versionId) {
+      Swal.fire({
+        title: 'Rollback to this snapshot?',
+        text: 'Current draft sections and fields will be replaced with this version state.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Restore',
+        confirmButtonColor: '#14B8A6'
+      }).then(res => {
+        if (res.isConfirmed) {
+          $.ajax({
+            url: `/api/admin/forms/${formId}/rollback/${versionId}`,
+            type: 'POST',
+            success: function(r) {
+              toastr.success(r.msg);
+              $('#versionsModal').modal('hide');
+              loadForms();
+            }
+          });
+        }
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+  </script>
+</body>
+</html>

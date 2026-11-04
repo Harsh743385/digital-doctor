@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title><%= title || 'Hospital Medical Documentation Print' %></title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 12mm 10mm;
+    }
+    body {
+      background: #e2e8f0;
+      color: #111827;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 11.5px;
+      line-height: 1.35;
+      margin: 0;
+      padding: 20px 0;
+    }
+    .page-sheet {
+      width: 210mm;
+      min-height: 297mm;
+      background: #fff;
+      margin: 0 auto 20px;
+      padding: 16mm 14mm;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      box-sizing: border-box;
+      position: relative;
+    }
+    @media print {
+      body { background: none; padding: 0; }
+      .page-sheet {
+        box-shadow: none;
+        margin: 0;
+        width: 100%;
+        min-height: auto;
+        padding: 0;
+        page-break-after: always;
+      }
+      .no-print { display: none !important; }
+    }
+
+    /* Hospital Header */
+    .hospital-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      border-bottom: 2px solid #000;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+    }
+    .h-logo-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .h-title {
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: -0.01em;
+      text-transform: uppercase;
+      color: #000;
+    }
+    .h-sub {
+      font-size: 10px;
+      color: #333;
+    }
+    .addressograph-box {
+      width: 160px;
+      height: 52px;
+      border: 1px solid #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #444;
+      background: #fafafa;
+    }
+
+    /* Form Title Pill */
+    .form-title-pill {
+      display: block;
+      margin: 6px auto 10px;
+      padding: 3px 20px;
+      border: 2px solid #000;
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-align: center;
+      letter-spacing: 0.04em;
+    }
+
+    /* Patient Demo Strip */
+    .patient-strip {
+      border: 1px solid #000;
+      padding: 6px 10px;
+      margin-bottom: 10px;
+      font-size: 11px;
+    }
+    .patient-strip .row { margin: 0; }
+    .patient-strip [class*="col-"] { padding: 2px 4px; }
+
+    /* Tables */
+    .table-print {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 8px;
+      font-size: 11px;
+    }
+    .table-print th, .table-print td {
+      border: 1px solid #000;
+      padding: 4px 6px;
+      vertical-align: top;
+    }
+    .table-print th {
+      background: #f3f4f6;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .section-head-bar {
+      background: #000;
+      color: #fff;
+      font-weight: 800;
+      font-size: 11px;
+      padding: 2px 8px;
+      text-transform: uppercase;
+      margin: 8px 0 4px;
+    }
+
+    .form-footer-code {
+      position: absolute;
+      bottom: 8mm;
+      right: 14mm;
+      font-size: 9.5px;
+      font-weight: 700;
+    }
+    .page-num {
+      position: absolute;
+      bottom: 8mm;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9.5px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Floating Print Control Bar -->
+  <div class="no-print text-center py-2 bg-dark text-white sticky-top shadow">
+    <div class="container d-flex justify-content-between align-items-center">
+      <div>
+        <i class="fas fa-hospital-alt mr-2"></i>
+        <b>Anand Surgical Hospital Pvt Ltd</b> — Official Medical Record Printing
+      </div>
+      <div>
+        <button class="btn btn-warning btn-sm font-weight-bold mr-2" onclick="window.print()">
+          <i class="fas fa-print mr-1"></i> Print / Save as PDF
+        </button>
+        <button class="btn btn-outline-light btn-sm" onclick="window.close()">
+          <i class="fas fa-times mr-1"></i> Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <% if (formType === 'initial-assessment' || formType === 'all') { %>
+    <!-- PAGE 1: Initial Assessment On Admission (Page 1 of 3) -->
+    <div class="page-sheet">
+      <div class="hospital-header">
+        <div class="h-logo-wrap">
+          <i class="fas fa-plus-square fa-3x text-danger"></i>
+          <div>
+            <div class="h-title">ANAND SURGICAL HOSPITAL PVT LIMITED</div>
+            <div class="h-sub">Memco Cross Road, Naroda Road, Ahmedabad-382345. Mo. 88662 10666, 88662 12666</div>
+            <div class="h-sub font-weight-bold">NABH ACCREDITED HOSPITAL</div>
+          </div>
+        </div>
+        <div class="addressograph-box">Addressograph</div>
+      </div>
+
+      <div class="form-title-pill">INITIAL ASSESSMENT ON ADMISSION</div>
+
+      <div class="patient-strip">
+        <div class="row">
+          <div class="col-7">Patient Name: <b><%= patient.full_name %></b></div>
+          <div class="col-3">Age: <b><%= patient.age %></b></div>
+          <div class="col-2">Gender: <b><%= patient.gender %></b></div>
+          <div class="col-4">Patient MRN/UHID: <b><%= patient.uhid %></b></div>
+          <div class="col-3">Bed No.: <b><%= patient.bed_number %></b></div>
+          <div class="col-5">Department: <b><%= record?.department || 'General Surgery' %></b></div>
+          <div class="col-12 mt-1">Admitting Consultant: <b><%= record?.admitting_consultant || 'Dr. Sanghavi' %></b></div>
+        </div>
+      </div>
+
+      <div class="font-weight-bold mb-1">ALLERGIES</div>
+      <div class="p-1 border mb-2 small d-flex flex-wrap gap-3">
+        <span class="mr-3">[<%= record?.allergies?.blood_transfusion ? 'X' : ' ' %>] Blood Transfusion</span>
+        <span class="mr-3">[<%= record?.allergies?.drug ? 'X' : ' ' %>] Drug</span>
+        <span class="mr-3">[<%= record?.allergies?.food ? 'X' : ' ' %>] Food &amp; Beverages</span>
+        <span class="mr-3">[<%= record?.allergies?.not_known ? 'X' : ' ' %>] Not Known</span>
+        <span>[<%= record?.allergies?.others ? 'X' : ' ' %>] Others: <u><%= record?.allergies?.others_detail || 'None' %></u></span>
+      </div>
+
+      <div class="font-weight-bold mb-1">CHIEF COMPLAINTS:</div>
+      <div class="border p-2 mb-2" style="min-height: 40px; white-space: pre-wrap;"><%= record?.chief_complaints || 'Patient admitted with complaints of pain and discomfort.' %></div>
+
+      <div class="font-weight-bold mb-1">PAST HISTORY OF ILLNESS:</div>
+      <div class="border p-2 mb-2" style="min-height: 40px; white-space: pre-wrap;"><%= record?.past_history_illness || 'No major past surgical history reported.' %></div>
+
+      <div class="font-weight-bold mb-1">PERSONAL HISTORY / HABITS:</div>
+      <div class="border p-1 mb-2 small">
+        Occupational History: <u><%= record?.occupational_history || 'Not specified' %></u> &nbsp;·&nbsp;
+        1. Diet: <u><%= record?.diet || 'Regular normal diet' %></u> &nbsp;·&nbsp;
+        2. Physical Activity: <u><%= record?.physical_activity || 'Moderate' %></u>
+      </div>
+
+      <div class="font-weight-bold mb-1">HABIT HISTORY:</div>
+      <table class="table-print">
+        <thead>
+          <tr><th style="width:40px;">Sr.</th><th>Type</th><th style="width:70px;">Optional</th><th>Duration / Since</th><th>Frequency</th><th>Quit Since</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Cigarette / Beedi</td><td><%= record?.habit_history?.cig?.opt || 'No' %></td><td><%= record?.habit_history?.cig?.since || '—' %></td><td><%= record?.habit_history?.cig?.freq || '—' %></td><td><%= record?.habit_history?.cig?.quit || '—' %></td></tr>
+          <tr><td>2</td><td>Tobacco Chewing</td><td><%= record?.habit_history?.tob?.opt || 'No' %></td><td><%= record?.habit_history?.tob?.since || '—' %></td><td><%= record?.habit_history?.tob?.freq || '—' %></td><td><%= record?.habit_history?.tob?.quit || '—' %></td></tr>
+          <tr><td>3</td><td>Alcohol</td><td><%= record?.habit_history?.alc?.opt || 'No' %></td><td><%= record?.habit_history?.alc?.since || '—' %></td><td><%= record?.habit_history?.alc?.freq || '—' %></td><td><%= record?.habit_history?.alc?.quit || '—' %></td></tr>
+          <tr><td>4</td><td>Drugs</td><td><%= record?.habit_history?.drg?.opt || 'No' %></td><td><%= record?.habit_history?.drg?.since || '—' %></td><td><%= record?.habit_history?.drg?.freq || '—' %></td><td><%= record?.habit_history?.drg?.quit || '—' %></td></tr>
+        </tbody>
+      </table>
+
+      <div class="font-weight-bold mb-1">PAST HISTORY - MEDICAL:</div>
+      <table class="table-print">
+        <thead>
+          <tr><th style="width:30px;">Sr.</th><th>Particulars</th><th style="width:60px;">Optional</th><th>Since When</th><th>Therapy</th><th style="width:30px;">Sr.</th><th>Particulars</th><th style="width:60px;">Optional</th><th>Since When</th><th>Therapy</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td><td>Hypertension</td><td><%= record?.past_medical_history?.htn?.opt || 'No' %></td><td><%= record?.past_medical_history?.htn?.since || '—' %></td><td><%= record?.past_medical_history?.htn?.th || '—' %></td>
+            <td>4</td><td>COPD / Asthma</td><td><%= record?.past_medical_history?.copd?.opt || 'No' %></td><td><%= record?.past_medical_history?.copd?.since || '—' %></td><td><%= record?.past_medical_history?.copd?.th || '—' %></td>
+          </tr>
+          <tr>
+            <td>2</td><td>Diabetes</td><td><%= record?.past_medical_history?.dm?.opt || 'No' %></td><td><%= record?.past_medical_history?.dm?.since || '—' %></td><td><%= record?.past_medical_history?.dm?.th || '—' %></td>
+            <td>5</td><td>Tuberculosis</td><td><%= record?.past_medical_history?.tb?.opt || 'No' %></td><td><%= record?.past_medical_history?.tb?.since || '—' %></td><td><%= record?.past_medical_history?.tb?.th || '—' %></td>
+          </tr>
+          <tr>
+            <td>3</td><td>Cardiac Disease</td><td><%= record?.past_medical_history?.cad?.opt || 'No' %></td><td><%= record?.past_medical_history?.cad?.since || '—' %></td><td><%= record?.past_medical_history?.cad?.th || '—' %></td>
+            <td>6</td><td>Cancer</td><td><%= record?.past_medical_history?.ca?.opt || 'No' %></td><td><%= record?.past_medical_history?.ca?.since || '—' %></td><td><%= record?.past_medical_history?.ca?.th || '—' %></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="page-num">(1)</div>
+      <div class="form-footer-code">ASH/115/F</div>
+    </div>
+
+    <!-- PAGE 2: Initial Assessment On Admission (Page 2 of 3) -->
+    <div class="page-sheet">
+      <div class="font-weight-bold mb-1">GENERAL EXAMINATION:</div>
+      <div class="border p-2 mb-2 small">
+        <div class="row">
+          <div class="col-3">SPO2: <b><%= record?.general_exam?.spo2 || '98' %> %</b></div>
+          <div class="col-3">TEMP: <b><%= record?.general_exam?.temp || '98.6' %> °F</b></div>
+          <div class="col-3">PULSE: <b><%= record?.general_exam?.pulse || '78' %> /min</b></div>
+          <div class="col-3">BP: <b><%= record?.general_exam?.bp || '120/80' %> mmHg</b></div>
+          <div class="col-3 mt-1">RR: <b><%= record?.general_exam?.rr || '18' %> /min</b></div>
+          <div class="col-3 mt-1">WT: <b><%= record?.general_exam?.weight || '68' %> kg</b></div>
+          <div class="col-3 mt-1">Height: <b><%= record?.general_exam?.height || '170' %> cm</b></div>
+          <div class="col-3 mt-1">BMI: <b><%= record?.general_exam?.bmi || '23.5' %></b></div>
+          <div class="col-6 mt-1">Pain Score: <b><%= record?.general_exam?.pain_score ?? 0 %> / 10</b></div>
+          <div class="col-6 mt-1">Location: <b><%= record?.general_exam?.pain_location || 'None' %></b></div>
+        </div>
+        <div class="row mt-2 pt-1 border-top">
+          <div class="col-4">ANKLE OEDEMA: [<%= record?.general_exam?.ankle_oedema === 'Yes' ? 'X' : ' ' %>] YES &nbsp; [<%= record?.general_exam?.ankle_oedema !== 'Yes' ? 'X' : ' ' %>] NO</div>
+          <div class="col-4">EMACIATED: [<%= record?.general_exam?.emaciated === 'Yes' ? 'X' : ' ' %>] YES &nbsp; [<%= record?.general_exam?.emaciated !== 'Yes' ? 'X' : ' ' %>] NO</div>
+          <div class="col-4">JAUNDICE: [<%= record?.general_exam?.jaundice === 'Yes' ? 'X' : ' ' %>] YES &nbsp; [<%= record?.general_exam?.jaundice !== 'Yes' ? 'X' : ' ' %>] NO</div>
+        </div>
+      </div>
+
+      <div class="font-weight-bold mb-1">SYSTEMIC EXAMINATION:</div>
+      <table class="table-print">
+        <thead><tr><th style="width:160px;">System</th><th style="width:70px;text-align:center;">NAD</th><th>Findings</th></tr></thead>
+        <tbody>
+          <tr><td>CVS</td><td class="text-center">[<%= record?.systemic_exam?.cvs?.nad ? 'X' : ' ' %>]</td><td><%= record?.systemic_exam?.cvs?.findings || 'S1 S2 heard' %></td></tr>
+          <tr><td>Respiratory</td><td class="text-center">[<%= record?.systemic_exam?.resp?.nad ? 'X' : ' ' %>]</td><td><%= record?.systemic_exam?.resp?.findings || 'Bilateral air entry equal, clear' %></td></tr>
+          <tr><td>CNS</td><td class="text-center">[<%= record?.systemic_exam?.cns?.nad ? 'X' : ' ' %>]</td><td><%= record?.systemic_exam?.cns?.findings || 'Conscious and oriented' %></td></tr>
+          <tr><td>GI / Abdomen</td><td class="text-center">[<%= record?.systemic_exam?.gi?.nad ? 'X' : ' ' %>]</td><td><%= record?.systemic_exam?.gi?.findings || 'Soft, non-tender' %></td></tr>
+          <tr><td>Genito Urinary</td><td class="text-center">[<%= record?.systemic_exam?.gu?.nad ? 'X' : ' ' %>]</td><td><%= record?.systemic_exam?.gu?.findings || 'Normal' %></td></tr>
+        </tbody>
+      </table>
+
+      <div class="font-weight-bold mb-1">PROVISIONAL DIAGNOSIS:</div>
+      <div class="border p-2 mb-2" style="min-height: 45px;"><%= record?.provisional_diagnosis || 'Under Evaluation' %></div>
+
+      <div class="font-weight-bold mb-1">INVESTIGATIONS ADVISED:</div>
+      <div class="border p-2 mb-2" style="min-height: 45px;"><%= record?.investigations_advised || 'Routine Pre-Op investigations' %></div>
+
+      <div class="font-weight-bold mb-1">PLAN OF TREATMENT:</div>
+      <div class="border p-2 mb-2" style="min-height: 45px;"><%= record?.plan_of_treatment || 'Admitted for surgical management' %></div>
+
+      <div class="page-num">(2)</div>
+      <div class="form-footer-code">ASH/115/F</div>
+    </div>
+
+    <!-- PAGE 3: Wells Model for DVT & Declaration (Page 3 of 3) -->
+    <div class="page-sheet">
+      <div class="font-weight-bold mb-1">FIG 2. WELLS MODEL FOR PREDICTING DVT PROBABILITY:</div>
+      <table class="table-print">
+        <thead><tr><th>Clinical Feature</th><th style="width:70px;text-align:center;">Point</th><th style="width:70px;text-align:center;">Present</th></tr></thead>
+        <tbody>
+          <tr><td>Active cancer (treatment ongoing, within 6 months or palliative)</td><td class="text-center">1</td><td class="text-center">[<%= record?.wells_dvt?.active_cancer ? 'X' : ' ' %>]</td></tr>
+          <tr><td>Paralysis, paresis or recent plaster immobilisation of lower extremity</td><td class="text-center">1</td><td class="text-center">[<%= record?.wells_dvt?.paralysis ? 'X' : ' ' %>]</td></tr>
+          <tr><td>Recently bedridden for ≥3 days, or major surgery within 12 weeks</td><td class="text-center">1</td><td class="text-center">[<%= record?.wells_dvt?.bedridden ? 'X' : ' ' %>]</td></tr>
+          <tr><td>Localised tenderness along the distribution of the deep venous system</td><td class="text-center">1</td><td class="text-center">[<%= record?.wells_dvt?.tenderness ? 'X' : ' ' %>]</td></tr>
+          <tr><td>Entire leg swollen</td><td class="text-center">1</td><td class="text-center">[<%= record?.wells_dvt?.entire_leg_swollen ? 'X' : ' ' %>]</td></tr>
+          <tr><td>Calf swelling at least 3cm larger than asymptomatic side</td><td class="text-center">1</td><td class="text-center">[<%= record?.wells_dvt?.calf_swelling ? 'X' : ' ' %>]</td></tr>
+          <tr><td>Pitting oedema confined to the symptomatic leg</td><td class="text-center">1</td><td class="text-center">[<%= record?.wells_dvt?.pitting_oedema ? 'X' : ' ' %>]</td></tr>
+          <tr><td>Collateral superficial veins (non-varicose)</td><td class="text-center">1</td><td class="text-center">[<%= record?.wells_dvt?.superficial_veins ? 'X' : ' ' %>]</td></tr>
+          <tr><td>Previously documented DVT</td><td class="text-center">1</td><td class="text-center">[<%= record?.wells_dvt?.prev_dvt ? 'X' : ' ' %>]</td></tr>
+          <tr><td>An alternative diagnosis is at least as likely as DVT</td><td class="text-center">-2</td><td class="text-center">[<%= record?.wells_dvt?.alt_diagnosis ? 'X' : ' ' %>]</td></tr>
+          <tr class="font-weight-bold bg-light">
+            <td>Clinical Probability Simplified Score:</td>
+            <td colspan="2" class="text-center"><%= record?.wells_dvt?.total_score ?? 0 %> Points (<%= (record?.wells_dvt?.total_score ?? 0) >= 2 ? 'DVT LIKELY ≥2' : 'DVT UNLIKELY <2' %>)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Bilingual Declaration -->
+      <div class="border p-3 mt-3 mb-4" style="border: 2px dashed #000 !important;">
+        <div class="row">
+          <div class="col-6 pr-3 border-right">
+            <b>Patient / Relatives / Accompanying Person:</b>
+            <p class="mb-0 mt-1 small">I hereby declare that the facts recorded above are based on my narration &amp; are accurate to the best of my knowledge.</p>
+          </div>
+          <div class="col-6 pl-3">
+            <b>દર્દી / સંબંધી / દર્દીને લાવેલ વ્યક્તિ:</b>
+            <p class="mb-0 mt-1 small">મારી હાલની તથા ભૂતકાળની બીમારી મેં ઉપર જણાવેલ સંપૂર્ણ માહિતી મેં આપેલ છે.</p>
+          </div>
+        </div>
+        <div class="row mt-3 pt-2 border-top small">
+          <div class="col-7">Name: <u><%= record?.informant_declaration?.name || patient.full_name %></u></div>
+          <div class="col-5">Signature: <u><%= record?.informant_declaration?.relation || 'Self' %></u></div>
+        </div>
+      </div>
+
+      <div class="row pt-4 mt-4 border-top">
+        <div class="col-6">
+          Consultant Sign / Name / Date: <br/><br/>
+          <b><%= record?.consultant_name || record?.admitting_consultant || 'Dr. Sanghavi' %></b>
+        </div>
+        <div class="col-6 text-right">
+          Medical Officer Sign / Date: <br/><br/>
+          <b><%= record?.medical_officer_name || 'Resident Medical Officer' %></b>
+        </div>
+      </div>
+
+      <div class="page-num">(3)</div>
+      <div class="form-footer-code">ASH/115/F</div>
+    </div>
+  <% } %>
+
+  <% if (formType === 'progress-notes' || formType === 'all') { %>
+    <!-- PAGE 4: Attending Consultant's Notes -->
+    <div class="page-sheet">
+      <div class="hospital-header">
+        <div class="h-logo-wrap">
+          <i class="fas fa-plus-square fa-3x text-danger"></i>
+          <div>
+            <div class="h-title">ANAND SURGICAL HOSPITAL PVT LIMITED</div>
+            <div class="h-sub">Memco Cross Road, Naroda Road, Ahmedabad-382345. Mo. 88662 10666, 88662 12666</div>
+            <div class="h-sub font-weight-bold">NABH ACCREDITED HOSPITAL</div>
+          </div>
+        </div>
+        <div class="addressograph-box">Addressograph</div>
+      </div>
+
+      <div class="form-title-pill">ATTENDING CONSULTANT'S NOTES</div>
+
+      <div class="patient-strip">
+        Patient: <b><%= patient.full_name %></b> &nbsp;·&nbsp; UHID: <b><%= patient.uhid %></b> &nbsp;·&nbsp; IPD: <b><%= patient.ipd_number %></b> &nbsp;·&nbsp; Bed: <b><%= patient.bed_number %></b>
+      </div>
+
+      <table class="table-print">
+        <thead>
+          <tr><th style="width:100px;">Date</th><th style="width:80px;">Time</th><th>Particulars</th></tr>
+        </thead>
+        <tbody>
+          <% if (Array.isArray(record) && record.length > 0) { %>
+            <% record.forEach(r => { %>
+              <tr>
+                <td><b><%= r.note_date %></b></td>
+                <td><%= r.note_time %></td>
+                <td style="white-space: pre-wrap;"><%= r.particulars %><div class="text-right mt-2 text-muted small">— Dr. <%= r.consultant_name %></div></td>
+              </tr>
+            <% }) %>
+          <% } else { %>
+            <% for(let i=0; i<18; i++) { %>
+              <tr style="height: 38px;"><td></td><td></td><td></td></tr>
+            <% } %>
+          <% } %>
+        </tbody>
+      </table>
+
+      <div class="page-num">(1)</div>
+      <div class="form-footer-code">ASH/115/F</div>
+    </div>
+  <% } %>
+
+  <% if (formType === 'cross-reference' || formType === 'all') { %>
+    <!-- PAGE 5: Cross Reference Visit Notes -->
+    <div class="page-sheet">
+      <div class="hospital-header">
+        <div class="h-logo-wrap">
+          <i class="fas fa-plus-square fa-3x text-danger"></i>
+          <div>
+            <div class="h-title">ANAND SURGICAL HOSPITAL PVT LIMITED</div>
+            <div class="h-sub">Memco Cross Road, Naroda Road, Ahmedabad-382345. Mo. 88662 10666</div>
+          </div>
+        </div>
+        <div class="addressograph-box">Addressograph</div>
+      </div>
+
+      <div class="form-title-pill">CROSS REFERENCE VISIT NOTES</div>
+
+      <div class="border p-2 mb-2">
+        <div class="font-weight-bold text-uppercase mb-1">To be filled in by Referring Doctor</div>
+        Reason for Cross Reference: <u><%= record?.reason_for_cross_reference || 'Specialist Evaluation' %></u><br/>
+        Cross Reference Type: [<%= record?.cross_reference_type === 'Elective' ? 'X' : ' ' %>] Elective &nbsp; [<%= record?.cross_reference_type === 'Emergency' ? 'X' : ' ' %>] Emergency<br/>
+        Cross Reference Visit: [<%= record?.visit_type === 'Consultation Only' ? 'X' : ' ' %>] Consultation Only &nbsp; [<%= record?.visit_type !== 'Consultation Only' ? 'X' : ' ' %>] Consultation and follow up
+      </div>
+
+      <div class="border p-2 mb-2 small">
+        I have been informed regarding cross reference / મને ક્રોસ રેફરન્સ વિશે જાણ કરવામાં આવેલ છે.<br/><br/>
+        <div class="d-flex justify-content-between">
+          <span>Signature of Patient / Relative: _____________________</span>
+          <span>Signature of Referring Consultant: _____________________</span>
+        </div>
+      </div>
+
+      <div class="border p-2 mb-2 small">
+        <div class="font-weight-bold text-uppercase mb-1">To be filled in by Medical Officer / Registrar</div>
+        Ward: <u><%= patient.ward %></u> &nbsp;·&nbsp; Informed on Date: <u><%= record?.informed_on_date || '—' %></u> &nbsp;·&nbsp; Time: <u><%= record?.informed_on_time || '—' %></u><br/>
+        Informed through: [X] Phone &nbsp; [ ] Personally &nbsp;·&nbsp; Informed by: <u>Resident MO</u>
+      </div>
+
+      <div class="border p-2 mb-2">
+        <b>Name of Consultant:</b> <%= record?.referred_consultant_name || 'Dr. Specialist' %> &nbsp;·&nbsp; <b>Speciality:</b> <%= record?.speciality || 'Cardiology' %><br/>
+        <b>Date of Visit:</b> <%= record?.visit_date || '—' %> &nbsp;·&nbsp; <b>Time of Visit:</b> <%= record?.visit_time || '—' %>
+      </div>
+
+      <div class="font-weight-bold mb-1">REFERRED DOCTOR'S NOTES:</div>
+      <div class="border p-2 mb-2" style="min-height: 120px; white-space: pre-wrap;"><%= record?.referred_doctor_notes || '' %></div>
+
+      <div class="font-weight-bold mb-1">IMPRESSION:</div>
+      <div class="border p-2 mb-2"><%= record?.impression || '' %></div>
+
+      <div class="font-weight-bold mb-1">ADVICE:</div>
+      <div class="border p-2 mb-2"><%= record?.advice || '' %></div>
+
+      <div class="page-num">(1)</div>
+      <div class="form-footer-code">ASH/130/F</div>
+    </div>
+  <% } %>
+
+  <% if (formType === 'blood-transfusion' || formType === 'all') { %>
+    <!-- PAGE 9: Blood Transfusion & Adverse Effects Form -->
+    <div class="page-sheet">
+      <div class="hospital-header">
+        <div class="h-logo-wrap">
+          <i class="fas fa-plus-square fa-3x text-danger"></i>
+          <div>
+            <div class="h-title">ANAND SURGICAL HOSPITAL PVT LIMITED</div>
+            <div class="h-sub">Memco Cross Road, Naroda Road, Ahmedabad-382345. Mo. 88662 10666, 88662 12666</div>
+            <div class="h-sub font-weight-bold">NABH ACCREDITED HOSPITAL</div>
+          </div>
+        </div>
+        <div class="addressograph-box">Addressograph</div>
+      </div>
+
+      <div class="form-title-pill">BLOOD TRANSFUSION &amp; ADVERSE EFFECTS FORM</div>
+      <div class="text-center font-weight-bold small mb-2">(To be filled in by Medical Officer / Registrar)</div>
+
+      <div class="patient-strip">
+        <div class="row">
+          <div class="col-8">Name of the Patient: <b><%= patient.full_name %></b></div>
+          <div class="col-4">IP No.: <b><%= patient.ipd_number %></b></div>
+          <div class="col-6">Diagnosis: <b><%= record?.diagnosis || 'Surgical Admission' %></b></div>
+          <div class="col-6">Ward: <b><%= patient.ward %></b></div>
+          <div class="col-6 mt-1">Patient Blood Group: <b><%= record?.patient_blood_group || 'B Positive' %></b></div>
+          <div class="col-6 mt-1">History of Previous BT: <b><%= record?.history_previous_bt || 'No' %></b></div>
+        </div>
+      </div>
+
+      <div class="section-head-bar">CONSULTANT ORDER</div>
+      <div class="border p-2 mb-2 small">
+        Type of Component: <u><%= record?.order_component_type || 'PRC' %></u> &nbsp;·&nbsp;
+        Number of Units: <u><%= record?.order_units || 1 %></u> &nbsp;·&nbsp;
+        Rate of Blood Flow: <u><%= record?.order_flow_rate || '30 drops/min' %></u><br/>
+        Indication: <u><%= record?.indication || 'Low Hemoglobin' %></u>
+      </div>
+
+      <div class="section-head-bar">TRANSFUSION RECORD &amp; VERIFICATION</div>
+      <div class="border p-2 mb-2 small">
+        Transfusion Number: <b><%= record?.transfusion_number || '1' %></b> &nbsp;·&nbsp;
+        Blood Bag No.: <b><%= record?.blood_bag_no || 'BAG-8921' %></b> &nbsp;·&nbsp;
+        Product Blood Group: <b><%= record?.product_blood_group || 'B Positive' %></b><br/>
+        Blood Bank: <b><%= record?.blood_bank_name || 'Red Cross Blood Center' %></b> &nbsp;·&nbsp;
+        Checked by Doctor: <b><%= record?.blood_checked_by_doctor || 'Dr. Sanghavi' %></b><br/>
+        Adverse Reaction Flag: <b><%= record?.adverse_reaction_flag || 'No Adverse Reaction' %></b>
+      </div>
+
+      <div class="section-head-bar">VITAL SIGNS FLOWSHEET DURING TRANSFUSION</div>
+      <table class="table-print">
+        <thead>
+          <tr><th>Time</th><th>Pulse</th><th>Temp</th><th>BP</th><th>Resp Rate</th><th>Blood Drop Rate</th><th>Remarks</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>0 Hrs</td><td>78</td><td>98.4</td><td>120/80</td><td>18</td><td>20 drops/min</td><td>Started</td></tr>
+          <tr><td>15 Min</td><td>80</td><td>98.4</td><td>122/82</td><td>18</td><td>30 drops/min</td><td>Smooth</td></tr>
+          <tr><td>30 Min</td><td>78</td><td>98.5</td><td>120/80</td><td>18</td><td>30 drops/min</td><td>Stable</td></tr>
+          <tr><td>60 Min</td><td>80</td><td>98.6</td><td>120/80</td><td>18</td><td>30 drops/min</td><td>Stable</td></tr>
+          <tr><td>90 Min</td><td>78</td><td>98.6</td><td>120/80</td><td>18</td><td>30 drops/min</td><td>Stable</td></tr>
+          <tr><td>120 Min</td><td>76</td><td>98.6</td><td>118/78</td><td>17</td><td>30 drops/min</td><td>Completed</td></tr>
+        </tbody>
+      </table>
+
+      <div class="page-num">(1)</div>
+      <div class="form-footer-code">ASH/141</div>
+    </div>
+  <% } %>
+
+</body>
+</html>
+

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+  <style>
+    body {
+      background-color: var(--grey-50);
+      min-height: 100vh;
+      padding-bottom: 60px;
+    }
+    .form-render-shell {
+      max-width: 960px;
+      margin: 30px auto;
+      background: #fff;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--grey-200);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+    }
+    .form-render-head {
+      background: linear-gradient(135deg, var(--teal-d), var(--ink));
+      color: #fff;
+      padding: 28px 32px;
+    }
+    .form-render-body {
+      padding: 32px;
+    }
+    .render-section {
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 1px dashed var(--grey-200);
+    }
+    .render-section:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    .render-section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--teal-d);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .render-section-desc {
+      font-size: 12.5px;
+      color: var(--grey-500);
+      margin-bottom: 18px;
+    }
+    .conditional-hidden {
+      display: none !important;
+    }
+    .form-control.is-invalid {
+      border-color: var(--rose) !important;
+      background-color: #FFF1F2;
+    }
+  </style>
+</head>
+<body>
+
+  <% if (currentUser) { %>
+    <%- include('../partials/navbar') %>
+  <% } else { %>
+    <header class="presco-navbar">
+      <div class="brand-badge">
+        <div class="brand-logo"><i class="fas fa-heartbeat"></i></div>
+        <div>
+          <div class="brand-title">PRESCO</div>
+          <div class="brand-sub">Clinical Form Intake</div>
+        </div>
+      </div>
+      <div>
+        <a href="/login" class="btn btn-soft btn-sm"><i class="fas fa-user-lock mr-1"></i> Staff Sign In</a>
+      </div>
+    </header>
+  <% } %>
+
+  <div class="container">
+    <div class="form-render-shell">
+      <!-- Form Header -->
+      <div class="form-render-head">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <div>
+            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.85;">
+              <i class="fas fa-hospital mr-1"></i> Presco Hospital &amp; Healthcare · Clinical Form
+            </div>
+            <h1 style="color: #fff; font-size: 24px; margin: 6px 0 4px;"><%= form.name %></h1>
+            <% if (form.description) { %>
+              <p style="margin: 0; opacity: 0.9; font-size: 13.5px;"><%= form.description %></p>
+            <% } %>
+          </div>
+          <div>
+            <span class="badge badge-light font-weight-bold" style="padding: 6px 12px; font-size: 12px; border-radius: 999px;">
+              Protocol v<%= form.version %>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Body -->
+      <form id="dynamicClinicalForm" class="form-render-body" onsubmit="handleSubmitForm(event)" enctype="multipart/form-data">
+        <input type="hidden" name="form_id" value="<%= form.id %>">
+        <input type="hidden" name="__is_preview" value="<%= isPreview ? '1' : '0' %>">
+
+        <!-- Optional Patient Picker for Clinical Mode -->
+        <div class="p-3 mb-4 rounded" style="background: var(--teal-l); border: 1px solid var(--teal-bd);">
+          <div class="row align-items-center">
+            <div class="col-md-3">
+              <label class="form-label font-weight-bold text-teal mb-1">
+                <i class="fas fa-user-injured mr-1"></i> Patient Association:
+              </label>
+            </div>
+            <div class="col-md-9">
+              <select name="patient_id" id="patientSelect" class="form-control select2">
+                <option value="">-- Anonymous / Outpatient Walk-in (No IPD Record) --</option>
+                <% patients.forEach(p => { %>
+                  <option value="<%= p.id %>" <%= p.id === 3177250 ? 'selected' : '' %>>
+                    <%= p.full_name %> (UHID: <%= p.uhid %> | Bed: <%= p.bed_number || 'N/A' %> | Ward: <%= p.ward || 'General' %>)
+                  </option>
+                <% }) %>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sections Loop -->
+        <% sections.forEach(sec => { %>
+          <div class="render-section" id="sec_render_<%= sec.id %>">
+            <div class="render-section-title">
+              <i class="fas fa-chevron-right text-teal mr-1"></i> <%= sec.title %>
+            </div>
+            <% if (sec.description) { %>
+              <div class="render-section-desc"><%= sec.description %></div>
+            <% } %>
+
+            <%
+              const cols = sec.columns || 2;
+              const colClass = cols === 1 ? 'col-12' : (cols === 2 ? 'col-md-6' : (cols === 3 ? 'col-md-4' : 'col-md-3'));
+            %>
+
+            <div class="row">
+              <% sec.fields.forEach(f => { %>
+                <%
+                  const span = f.column_span || 1;
+                  const finalCol = span > 1 ? (span >= 4 || cols <= 2 ? 'col-12' : 'col-md-8') : colClass;
+                  const label = f.effective_label;
+                  const req = f.effective_required;
+                  const placeholder = f.effective_placeholder || '';
+                  const rulesAttr = JSON.stringify(f.conditional_rules || []);
+                %>
+
+                <div class="<%= finalCol %> form-group field-wrapper"
+                     data-field="<%= f.name %>"
+                     data-field-type="<%= f.field_type %>"
+                     data-required="<%= req ? '1' : '0' %>"
+                     data-rules='<%- rulesAttr %>'>
+
+                  <label class="form-label font-weight-bold" for="input_<%= f.name %>">
+                    <%= label %>
+                    <% if (req) { %><span class="req">*</span><% } %>
+                  </label>
+
+                  <% if (f.field_type === 'textarea') { %>
+                    <textarea class="form-control"
+                              id="input_<%= f.name %>"
+                              name="<%= f.name %>"
+                              placeholder="<%= placeholder %>"
+                              <%= req ? 'required' : '' %>
+                              <%= f.max_length ? `maxlength="${f.max_length}"` : '' %>><%= f.default_value || '' %></textarea>
+
+                  <% } else if (f.field_type === 'number') { %>
+                    <input type="number"
+                           step="any"
+                           class="form-control"
+                           id="input_<%= f.name %>"
+                           name="<%= f.name %>"
+                           placeholder="<%= placeholder %>"
+                           value="<%= f.default_value || '' %>"
+                           <%= f.min_value !== null ? `min="${f.min_value}"` : '' %>
+                           <%= f.max_value !== null ? `max="${f.max_value}"` : '' %>
+                           <%= req ? 'required' : '' %>>
+
+                  <% } else if (f.field_type === 'date') { %>
+                    <input type="date"
+                           class="form-control"
+                           id="input_<%= f.name %>"
+                           name="<%= f.name %>"
+                           value="<%= f.default_value || '' %>"
+                           <%= req ? 'required' : '' %>>
+
+                  <% } else if (f.field_type === 'time') { %>
+                    <input type="time"
+                           class="form-control"
+                           id="input_<%= f.name %>"
+                           name="<%= f.name %>"
+                           value="<%= f.default_value || '' %>"
+                           <%= req ? 'required' : '' %>>
+
+                  <% } else if (f.field_type === 'datetime') { %>
+                    <input type="datetime-local"
+                           class="form-control"
+                           id="input_<%= f.name %>"
+                           name="<%= f.name %>"
+                           value="<%= f.default_value || '' %>"
+                           <%= req ? 'required' : '' %>>
+
+                  <% } else if (f.field_type === 'dropdown') { %>
+                    <select class="form-control"
+                            id="input_<%= f.name %>"
+                            name="<%= f.name %>"
+                            <%= req ? 'required' : '' %>>
+                      <option value="">-- Choose Option --</option>
+                      <% (f.options || []).forEach(opt => { %>
+                        <option value="<%= opt.value %>" <%= f.default_value === opt.value ? 'selected' : '' %>>
+                          <%= opt.label %>
+                        </option>
+                      <% }) %>
+                    </select>
+
+                  <% } else if (f.field_type === 'radio') { %>
+                    <div>
+                      <% (f.options || []).forEach((opt, idx) => { %>
+                        <div class="custom-control custom-radio custom-control-inline">
+                          <input type="radio"
+                                 id="rad_<%= f.name %>_<%= idx %>"
+                                 name="<%= f.name %>"
+                                 value="<%= opt.value %>"
+                                 class="custom-control-input"
+                                 <%= f.default_value === opt.value ? 'checked' : '' %>
+                                 <%= req ? 'required' : '' %>>
+                          <label class="custom-control-label" for="rad_<%= f.name %>_<%= idx %>"><%= opt.label %></label>
+                        </div>
+                      <% }) %>
+                    </div>
+
+                  <% } else if (f.field_type === 'checkbox') { %>
+                    <div>
+                      <% (f.options || []).forEach((opt, idx) => { %>
+                        <div class="custom-control custom-checkbox custom-control-inline">
+                          <input type="checkbox"
+                                 id="chk_<%= f.name %>_<%= idx %>"
+                                 name="<%= f.name %>[]"
+                                 value="<%= opt.value %>"
+                                 class="custom-control-input">
+                          <label class="custom-control-label" for="chk_<%= f.name %>_<%= idx %>"><%= opt.label %></label>
+                        </div>
+                      <% }) %>
+                    </div>
+
+                  <% } else if (f.field_type === 'multiselect') { %>
+                    <select class="form-control select2"
+                            multiple="multiple"
+                            id="input_<%= f.name %>"
+                            name="<%= f.name %>[]"
+                            data-placeholder="<%= placeholder || 'Select one or more...' %>">
+                      <% (f.options || []).forEach(opt => { %>
+                        <option value="<%= opt.value %>"><%= opt.label %></option>
+                      <% }) %>
+                    </select>
+
+                  <% } else if (f.field_type === 'boolean') { %>
+                    <div class="custom-control custom-switch mt-2">
+                      <input type="checkbox"
+                             class="custom-control-input"
+                             id="switch_<%= f.name %>"
+                             name="<%= f.name %>"
+                             value="true"
+                             <%= f.default_value === 'true' || f.default_value === '1' ? 'checked' : '' %>>
+                      <label class="custom-control-label" for="switch_<%= f.name %>">Yes / Confirmed</label>
+                    </div>
+
+                  <% } else if (f.field_type === 'file' || f.field_type === 'image') { %>
+                    <div class="custom-file">
+                      <input type="file"
+                             class="custom-file-input"
+                             id="file_<%= f.name %>"
+                             name="<%= f.name %>"
+                             <%= f.field_type === 'image' ? 'accept="image/*"' : '' %>
+                             <%= req ? 'required' : '' %>
+                             onchange="$(this).next('.custom-file-label').html(this.files[0] ? this.files[0].name : 'Choose file')">
+                      <label class="custom-file-label" for="file_<%= f.name %>">Choose <%= f.field_type === 'image' ? 'photo/image' : 'document file' %>...</label>
+                    </div>
+
+                  <% } else { %>
+                    <!-- text, email, phone -->
+                    <input type="<%= f.field_type === 'email' ? 'email' : (f.field_type === 'phone' ? 'tel' : 'text') %>"
+                           class="form-control"
+                           id="input_<%= f.name %>"
+                           name="<%= f.name %>"
+                           placeholder="<%= placeholder %>"
+                           value="<%= f.default_value || '' %>"
+                           <%= req ? 'required' : '' %>
+                           <%= f.min_length ? `minlength="${f.min_length}"` : '' %>
+                           <%= f.max_length ? `maxlength="${f.max_length}"` : '' %>>
+                  <% } %>
+
+                  <% if (f.effective_help) { %>
+                    <small class="form-text text-muted"><%= f.effective_help %></small>
+                  <% } %>
+                  <div class="invalid-feedback" id="err_<%= f.name %>"></div>
+                </div>
+              <% }) %>
+            </div>
+          </div>
+        <% }) %>
+
+        <!-- Submit Button Row -->
+        <div class="pt-4 mt-2 d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <button type="reset" class="btn btn-soft" onclick="setTimeout(evaluateAllConditions, 100)">
+            <i class="fas fa-undo mr-1"></i> Reset Form
+          </button>
+          <button type="submit" id="btnSubmitForm" class="btn btn-teal btn-lg px-4 font-weight-bold">
+            <i class="fas fa-paper-plane mr-1"></i> Submit Clinical Form
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <%- include('../partials/footer') %>
+
+  <script>
+    $(document).ready(function() {
+      // Initialize select2
+      $('.select2').select2({
+        theme: 'bootstrap4',
+        width: '100%'
+      });
+
+      // Bind conditional rules evaluation on all inputs
+      $('#dynamicClinicalForm').on('input change', 'input, select, textarea', function() {
+        evaluateAllConditions();
+      });
+
+      // Run initial evaluation
+      evaluateAllConditions();
+    });
+
+    // Dynamic Conditional Rules Engine
+    function evaluateAllConditions() {
+      const form = $('#dynamicClinicalForm');
+
+      $('.field-wrapper').each(function() {
+        const fieldEl = $(this);
+        const rules = fieldEl.data('rules');
+        if (!rules || !Array.isArray(rules) || rules.length === 0) return;
+
+        rules.forEach(rule => {
+          if (!rule.field) return;
+
+          // Find trigger element value
+          let triggerVal = null;
+          const radioChecked = form.find(`input[name="${rule.field}"]:checked`);
+          if (radioChecked.length > 0) {
+            triggerVal = radioChecked.val();
+          } else {
+            const el = form.find(`[name="${rule.field}"]`);
+            if (el.is(':checkbox')) {
+              triggerVal = el.is(':checked') ? 'true' : 'false';
+            } else {
+              triggerVal = el.val();
+            }
+          }
+
+          let matched = false;
+          const targetVal = String(rule.value || '').trim().toLowerCase();
+          const actualVal = String(triggerVal || '').trim().toLowerCase();
+
+          switch (rule.operator) {
+            case '==':
+              matched = (actualVal === targetVal);
+              break;
+            case '!=':
+              matched = (actualVal !== targetVal);
+              break;
+            case '>':
+              matched = (parseFloat(actualVal) > parseFloat(targetVal));
+              break;
+            case '<':
+              matched = (parseFloat(actualVal) < parseFloat(targetVal));
+              break;
+            case 'contains':
+              matched = actualVal.includes(targetVal);
+              break;
+            default:
+              matched = (actualVal === targetVal);
+          }
+
+          const shouldShow = rule.action === 'show' ? matched : !matched;
+          if (shouldShow) {
+            fieldEl.removeClass('conditional-hidden');
+            fieldEl.find('input, select, textarea').prop('disabled', false);
+          } else {
+            fieldEl.addClass('conditional-hidden');
+            fieldEl.find('input, select, textarea').prop('disabled', true);
+          }
+        });
+      });
+    }
+
+    // Submit handler with FormData and multipart file uploads
+    function handleSubmitForm(e) {
+      e.preventDefault();
+      $('.is-invalid').removeClass('is-invalid');
+      $('.invalid-feedback').text('');
+
+      const form = document.getElementById('dynamicClinicalForm');
+      const formData = new FormData(form);
+      const submitBtn = $('#btnSubmitForm');
+      const originalText = submitBtn.html();
+
+      submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Submitting...');
+
+      $.ajax({
+        url: '/api/forms/<%= form.slug %>/submit',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(res) {
+          submitBtn.prop('disabled', false).html(originalText);
+          if (res.success) {
+            Swal.fire({
+              title: 'Submitted Successfully!',
+              text: `Reference ID: #${res.submission_id}. The patient clinical entry has been archived.`,
+              icon: 'success',
+              confirmButtonText: 'Done',
+              confirmButtonColor: '#14B8A6'
+            }).then(() => {
+              form.reset();
+              setTimeout(evaluateAllConditions, 100);
+            });
+          } else {
+            toastr.error(res.msg || 'Submission error');
+          }
+        },
+        error: function(err) {
+          submitBtn.prop('disabled', false).html(originalText);
+          if (err.status === 422 && err.responseJSON && err.responseJSON.errors) {
+            const errors = err.responseJSON.errors;
+            for (const [key, msg] of Object.entries(errors)) {
+              const input = $(`[name="${key}"], [name="${key}[]"]`);
+              input.addClass('is-invalid');
+              $(`#err_${key}`).text(msg);
+            }
+            toastr.error('Please resolve the highlighted field errors.');
+          } else {
+            toastr.error(err.responseJSON?.msg || 'An error occurred while submitting.');
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>

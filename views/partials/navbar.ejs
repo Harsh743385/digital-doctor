@@ -1,0 +1,51 @@
+<header class="presco-navbar">
+  <div class="d-flex align-items-center">
+    <a href="/dashboard" class="brand-badge mr-4">
+      <div class="brand-logo">
+        <i class="fas fa-heartbeat"></i>
+      </div>
+      <div>
+        <div class="brand-title">PRESCO</div>
+        <div class="brand-sub">Clinical &amp; Form Builder</div>
+      </div>
+    </a>
+
+    <nav class="nav-links-wrap d-none d-md-flex">
+      <a href="/dashboard" class="nav-pill-link <%= currentPath === '/dashboard' ? 'active' : '' %>">
+        <i class="fas fa-th-large"></i> Dashboard
+      </a>
+      <a href="/admin/fields" class="nav-pill-link <%= currentPath.startsWith('/admin/fields') ? 'active' : '' %>">
+        <i class="fas fa-cubes"></i> Field Master
+      </a>
+      <a href="/admin/forms" class="nav-pill-link <%= currentPath.startsWith('/admin/forms') ? 'active' : '' %>">
+        <i class="fas fa-file-invoice"></i> Form Builder
+      </a>
+      <a href="/cms/digital-nursing" class="nav-pill-link <%= currentPath.startsWith('/cms/digital-nursing') || currentPath === '/nursing' ? 'active' : '' %>">
+        <i class="fas fa-user-nurse"></i> Digital Nursing
+      </a>
+      <a href="/cms/digital-doctor" class="nav-pill-link <%= currentPath.startsWith('/cms/digital-doctor') || currentPath.startsWith('/doctor') ? 'active' : '' %>">
+        <i class="fas fa-user-md"></i> Digital Doctor
+      </a>
+    </nav>
+  </div>
+
+  <div class="d-flex align-items-center gap-3">
+    <% if (currentUser) { %>
+      <div class="d-none d-sm-flex align-items-center mr-3 text-right">
+        <div>
+          <div style="font-weight:700;font-size:13px;color:var(--grey-900);"><%= currentUser.full_name %></div>
+          <div style="font-size:11px;color:var(--teal-d);text-transform:capitalize;">
+            <i class="fas fa-shield-alt mr-1"></i><%= currentUser.role %>
+          </div>
+        </div>
+      </div>
+      <a href="/logout" class="btn btn-soft btn-sm text-danger" title="Sign Out">
+        <i class="fas fa-sign-out-alt mr-1"></i> Sign Out
+      </a>
+    <% } else { %>
+      <a href="/login" class="btn btn-teal btn-sm">
+        <i class="fas fa-sign-in-alt mr-1"></i> Sign In
+      </a>
+    <% } %>
+  </div>
+</header>

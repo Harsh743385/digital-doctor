@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+  <style>
+    :root{
+      --teal:#14B8A6; --teal-d:#0D9488; --teal-l:#E6FAF5; --teal-bd:#A7F3D0;
+      --ink:#0F766E; --rose:#E11D48; --amber:#F59E0B; --green:#16A34A;
+      --grey-50:#F9FAFB; --grey-100:#F3F4F6; --grey-200:#E5E7EB; --grey-500:#6B7280;
+      --grey-700:#374151; --grey-900:#111827;
+    }
+    #dnur-embed-root{ background:var(--grey-50); color:var(--grey-900); font-family:'Inter','Segoe UI',Arial,sans-serif; }
+    html.drawer-open, body.drawer-open{ overflow:hidden !important; }
+    #dnur-embed-root .nursing-shell{ padding:14px 18px 60px; max-width:100%; margin:0; }
+
+    /* ---------- inner pill tabs ---------- */
+    .nursing-pills{
+      display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr));
+      gap:10px; padding:14px; background:#fff; border:1px solid var(--grey-200);
+      border-radius:14px; list-style:none; margin:0;
+    }
+    .nursing-pills li{ list-style:none; }
+    .nursing-pills .pill{
+      display:flex; align-items:center; justify-content:center; gap:6px;
+      padding:9px 12px; border-radius:999px;
+      background:#fff; border:1px solid var(--grey-200);
+      color:var(--grey-700); font-size:13px; font-weight:500;
+      cursor:pointer; user-select:none; transition:all .15s ease;
+    }
+    .nursing-pills .pill:hover{ border-color:var(--teal); color:var(--teal-d); }
+    .nursing-pills .pill.active{
+      background:var(--teal); color:#fff; border-color:var(--teal);
+      box-shadow:0 2px 6px rgba(20,184,166,.25);
+    }
+    .nursing-pills .pill i{ font-size:12px; opacity:.85; }
+
+    /* ---------- card ---------- */
+    .ncard{ background:#fff; border:1px solid var(--grey-200); border-radius:14px; margin-top:14px; }
+    .ncard-head{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 18px; border-bottom:1px solid var(--grey-200); flex-wrap:wrap; gap:10px;
+    }
+    .ncard-head h4{ font-size:15px; font-weight:700; margin:0; color:var(--grey-900); }
+    .ncard-body{ padding:18px; min-height:300px; }
+
+    /* ---------- date strip ---------- */
+    .date-strip{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding:0 0 12px; }
+    .date-strip .day{
+      min-width:60px; padding:6px 10px; text-align:center; cursor:pointer;
+      border:1px solid var(--grey-200); border-radius:10px; background:#fff;
+      font-size:12px; color:var(--grey-700); position:relative;
+    }
+    .date-strip .day .dow{ font-size:11px; color:var(--grey-500); text-transform:uppercase; }
+    .date-strip .day .dom{ font-size:16px; font-weight:700; color:var(--grey-900); }
+    .date-strip .day.active{ border-color:var(--teal); background:var(--teal-l); }
+    .date-strip .day.active .dom{ color:var(--teal-d); }
+    .date-strip .day.dn-has::after{ content:''; position:absolute; top:5px; right:5px; width:8px; height:8px;
+      border-radius:50%; background:#F97316; box-shadow:0 0 0 2px #fff; }
+    .date-strip .nav{ width:30px; height:30px; display:inline-flex; align-items:center;
+      justify-content:center; border:1px solid var(--grey-200); border-radius:8px;
+      background:#fff; cursor:pointer; }
+
+    /* ---------- buttons ---------- */
+    .btn-teal{ background:var(--teal); border-color:var(--teal); color:#fff; }
+    .btn-teal:hover{ background:var(--teal-d); border-color:var(--teal-d); color:#fff; }
+    .btn-soft{ background:#fff; border:1px solid var(--grey-200); color:var(--grey-700); }
+    .btn-soft:hover{ border-color:var(--teal); color:var(--teal-d); }
+    .btn-icon{ padding:6px 10px; }
+
+    /* ---------- empty state ---------- */
+    .empty{ padding:50px 16px; text-align:center; color:var(--grey-500); }
+    .empty i{ font-size:34px; opacity:.4; }
+    .empty h5{ font-size:14px; margin-top:10px; color:var(--grey-700); font-weight:500; }
+    .empty p{ font-size:12px; margin-top:4px; }
+
+    /* ---------- list rows ---------- */
+    .row-item{
+      padding:12px 14px; border:1px solid var(--grey-200); border-radius:10px;
+      margin-bottom:8px; display:flex; gap:14px; flex-wrap:wrap;
+      align-items:flex-start; justify-content:space-between; background:#fff;
+    }
+    .row-item .meta{ font-size:11px; color:var(--grey-500); }
+    .row-item .pill-tag{
+      display:inline-block; padding:2px 8px; border-radius:999px;
+      background:var(--teal-l); color:var(--ink); font-size:11px; font-weight:600;
+    }
+    .row-item .pill-tag.warn{ background:#FEF3C7; color:#92400E; }
+    .row-item .pill-tag.danger{ background:#FEE2E2; color:#B91C1C; }
+    .row-item .pill-tag.ok{ background:#DCFCE7; color:#15803D; }
+
+    /* ---------- drawer ---------- */
+    .drawer-backdrop{ position:fixed; inset:0; background:rgba(15,23,42,.45);
+      z-index:1040; display:none; }
+    .drawer-backdrop.open{ display:block; }
+    .drawer{ position:fixed; top:0; right:-720px; height:100%; width:min(720px,95vw);
+      background:#fff; box-shadow:-8px 0 24px rgba(0,0,0,.18); z-index:1050;
+      display:flex; flex-direction:column; transition:right .25s ease; }
+    .drawer.open{ right:0; }
+    .drawer-head{ display:flex; align-items:center; justify-content:space-between;
+      padding:16px 20px; border-bottom:1px solid var(--grey-200); }
+    .drawer-head h4{ margin:0; font-size:16px; font-weight:700; }
+    .drawer-head .sub{ font-size:11px; color:var(--grey-500); margin-top:2px; text-transform:uppercase; }
+    .drawer-body{ flex:1; overflow-y:auto; padding:18px 20px; }
+    .drawer-foot{ padding:14px 20px; border-top:1px solid var(--grey-200);
+      display:flex; gap:10px; justify-content:flex-end; }
+
+    .input-grid{ display:grid; gap:14px; }
+    .input-grid.cols-2{ grid-template-columns:repeat(2,1fr); }
+    .input-grid.cols-3{ grid-template-columns:repeat(3,1fr); }
+    .input-grid.cols-4{ grid-template-columns:repeat(4,1fr); }
+    .input-grid.cols-5{ grid-template-columns:repeat(5,1fr); }
+    @media (max-width: 720px){
+      .input-grid.cols-3,.input-grid.cols-4,.input-grid.cols-5{ grid-template-columns:repeat(2,1fr); }
+    }
+    .section-title{ font-size:11px; text-transform:uppercase; letter-spacing:.5px;
+      color:var(--grey-500); margin:16px 0 8px; font-weight:700; }
+
+    /* Vitals Grid */
+    .vital-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:6px; }
+    .vital-cell .lbl{ font-size:10px; color:var(--grey-500); text-transform:uppercase; }
+    .vital-cell .val{ font-size:13px; color:var(--grey-900); font-weight:600; }
+    .vital-cell .val.high{ color:var(--rose); }
+    .vital-cell .val.low{ color:var(--amber); }
+
+    /* eMAR layout */
+    .emar-table-wrap{ width:100%; overflow-x:auto; border:1px solid var(--grey-200); border-radius:10px; background:#fff; }
+    .emar-table{ width:100%; border-collapse:collapse; }
+    .emar-table thead th{
+      background:#f8fafc; color:var(--grey-700); font-size:11px; font-weight:700;
+      text-transform:uppercase; letter-spacing:.04em; text-align:left;
+      padding:12px 14px; border-bottom:1px solid var(--grey-200); white-space:nowrap;
+    }
+    .emar-table tbody td{ padding:14px; border-bottom:1px solid var(--grey-200); vertical-align:top; }
+    .slot{
+      flex:0 0 130px; min-height:74px; padding:10px;
+      border:1px solid var(--grey-200); border-radius:8px;
+      background:#fff; display:flex; flex-direction:column; gap:2px;
+      cursor:pointer;
+    }
+    .slot-time{ font-size:13px; font-weight:700; color:var(--grey-900); }
+    .slot-meta{ font-size:11px; color:var(--grey-500); }
+    .slot-given{ background:#ECFDF5; border-color:#A7F3D0; }
+    .slot-given .slot-time{ color:#065F46; }
+    .slots-grid{ display:flex; flex-wrap:wrap; gap:8px; }
+
+    /* Fast Hug */
+    .fhug-list .item{ padding:12px 14px; border:1px solid var(--grey-200); border-radius:10px; margin-bottom:10px; background:#fff; }
+    .fhug-list .badge-letter{ width:32px; height:32px; border-radius:50%; color:#fff; display:inline-flex; align-items:center; justify-content:center; font-weight:700; }
+    .fhug-list .opts{ margin-left:auto; display:flex; gap:6px; }
+    .fhug-list .opt{ padding:4px 10px; font-size:12px; border-radius:999px; border:1px solid var(--grey-200); background:#fff; cursor:pointer; }
+    .fhug-list .opt.sel.D{ background:#DCFCE7; color:#15803D; border-color:#86EFAC; }
+    .fhug-list .opt.sel.P{ background:#FEF3C7; color:#92400E; border-color:#FCD34D; }
+    .fhug-list .opt.sel.N{ background:#FEE2E2; color:#B91C1C; border-color:#FCA5A5; }
+
+    /* IO totals */
+    .io-totals{ display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px; margin-top:12px; }
+    .io-totals .b{ background:#fff; border:1px solid var(--grey-200); border-radius:10px; padding:10px 12px; }
+    .io-totals .b .lbl{ font-size:11px; color:var(--grey-500); text-transform:uppercase; }
+    .io-totals .b .v{ font-size:18px; font-weight:700; color:var(--grey-900); }
+    .io-totals .b.balance .v{ color:var(--teal-d); }
+
+    .form-control, select.form-control, textarea.form-control, input.form-control { border-radius: 10px; }
+    .btn, .btn-sm, .btn-soft, .btn-teal { border-radius: 10px; }
+  </style>
+</head>
+<body>
+  <%- include('../partials/navbar') %>
+
+  <div id="dnur-embed-root">
+    <div class="nursing-shell">
+      <!-- Patient Information Banner -->
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-bottom:14px; background:#fff; border:1px solid var(--grey-200); border-radius:14px; padding:14px 18px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:44px;height:44px;background:linear-gradient(135deg, var(--teal), var(--teal-d));color:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 10px rgba(20,184,166,.3);">
+            <i class="fas fa-user-nurse"></i>
+          </div>
+          <div>
+            <div style="font-size:16px;font-weight:800;color:var(--grey-900);letter-spacing:-0.01em;">
+              <%= patient.full_name %>
+            </div>
+            <div style="font-size:12px;color:var(--grey-500);">
+              UHID: <b><%= patient.uhid %></b> &nbsp;·&nbsp;
+              IPD: <b><%= patient.ipd_number %></b> &nbsp;·&nbsp;
+              <%= patient.age %> &nbsp;·&nbsp; <%= patient.gender %> &nbsp;·&nbsp;
+              <span class="badge badge-light font-weight-bold"><%= patient.ward || 'ICU Ward A' %> (<%= patient.bed_number || 'ICU-04' %>)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          <% if (typeof allPatients !== 'undefined' && allPatients.length > 0) { %>
+            <div class="dropdown">
+              <button class="btn btn-soft btn-sm dropdown-toggle font-weight-bold" type="button" data-toggle="dropdown">
+                <i class="fas fa-users mr-1"></i> Patient (<%= allPatients.length %>)
+              </button>
+              <div class="dropdown-menu dropdown-menu-right" style="min-width: 260px; max-height: 350px; overflow-y: auto;">
+                <h6 class="dropdown-header text-uppercase font-weight-bold">Select In-Patient</h6>
+                <% allPatients.forEach(p => { %>
+                  <a class="dropdown-item d-flex justify-content-between align-items-center <%= p.id == patient.id ? 'active font-weight-bold' : '' %>"
+                     href="/cms/digital-nursing?patient_id=<%= p.id %>">
+                    <div>
+                      <div><%= p.full_name %></div>
+                      <small class="text-muted"><%= p.uhid %> · <%= p.bed_number %></small>
+                    </div>
+                    <% if (p.id == patient.id) { %>
+                      <i class="fas fa-check"></i>
+                    <% } %>
+                  </a>
+                <% }) %>
+              </div>
+            </div>
+          <% } %>
+
+          <a href="/cms/digital-doctor?patient_id=<%= patient.id %>" class="btn btn-warning btn-sm text-dark font-weight-bold">
+            <i class="fas fa-user-md mr-1"></i> Doctor Station
+          </a>
+
+          <button class="btn btn-soft btn-sm" onclick="DigitalNursing.reloadList()">
+            <i class="fas fa-sync-alt mr-1"></i> Sync Chart
+          </button>
+          <a href="/forms/inpatient-initial-assessment" target="_blank" class="btn btn-teal btn-sm">
+            <i class="fas fa-clipboard-check mr-1"></i> Form Intake
+          </a>
+        </div>
+      </div>
+
+      <!-- 13 Clinical Tabs Navigation -->
+      <ul class="nursing-pills" id="nurseTabs">
+        <li><div class="pill active" data-tab="assessment"><i class="fas fa-clipboard-check"></i> Assessments</div></li>
+        <li><div class="pill" data-tab="emar"><i class="fas fa-pills"></i> eMAR</div></li>
+        <li><div class="pill" data-tab="etar"><i class="fas fa-heart"></i> eTAR</div></li>
+        <li><div class="pill" data-tab="vitals"><i class="fas fa-heartbeat"></i> Vital Sheet</div></li>
+        <li><div class="pill" data-tab="icu"><i class="fas fa-thermometer-half"></i> ICU/CCU</div></li>
+        <li><div class="pill" data-tab="notes"><i class="fas fa-file-alt"></i> Progress Notes</div></li>
+        <li><div class="pill" data-tab="io"><i class="fas fa-tint"></i> I/O Chart</div></li>
+        <li><div class="pill" data-tab="handover"><i class="fas fa-exchange-alt"></i> Shift Handover</div></li>
+        <li><div class="pill" data-tab="risk"><i class="fas fa-shield-alt"></i> Risk Assessment</div></li>
+        <li><div class="pill" data-tab="fasthug"><i class="fas fa-tasks"></i> FAST HUG BID</div></li>
+        <li><div class="pill" data-tab="restraint"><i class="fas fa-lock"></i> Restraint</div></li>
+        <li><div class="pill" data-tab="careplan"><i class="fas fa-bullseye"></i> Care Plans</div></li>
+        <li><div class="pill" data-tab="report"><i class="fas fa-file-medical"></i> Report</div></li>
+      </ul>
+
+      <!-- Main Clinical Card -->
+      <div class="ncard">
+        <div class="ncard-head">
+          <h4 id="ncardTitle">Nursing Assessments</h4>
+          <div class="actions" id="ncardActions"></div>
+        </div>
+        <div class="ncard-body">
+          <div id="dateStripWrap" class="date-strip"></div>
+          <div id="featureBody"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide-In Drawer -->
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <div class="drawer" id="drawer">
+    <div class="drawer-head">
+      <div>
+        <h4 id="drawerTitle">New Entry</h4>
+        <div class="sub" id="drawerSub"></div>
+      </div>
+      <button type="button" class="btn btn-soft btn-icon" onclick="closeDrawer()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="drawer-body" id="drawerBody"></div>
+    <div class="drawer-foot">
+      <button type="button" class="btn btn-soft" id="drawerCancelBtn" onclick="closeDrawer()">Cancel</button>
+      <button type="button" class="btn btn-teal" id="drawerSaveBtn" onclick="DigitalNursing.save()">
+        <i class="fas fa-save mr-1"></i> Save
+      </button>
+    </div>
+  </div>
+
+  <%- include('../partials/footer') %>
+
+  <!-- Presco Digital Nursing Client Core Script -->
+  <script>
+    const PID = <%= patient.id %>;
+    const HID = <%= hospital.id %>;
+    const PNM = "<%= patient.full_name %>";
+    const CSRF = $('meta[name="csrf-token"]').attr('content');
+
+    const URLS = {
+      assessment: { list: "/cms/ajax/nursing/assessment/list", save: "/cms/ajax/nursing/assessment/save", del: "/cms/ajax/nursing/assessment/delete" },
+      emar:       { list: "/cms/ajax/nursing/emar/list", save: "/cms/ajax/nursing/emar/save", del: "/cms/ajax/nursing/emar/delete", stop: "/cms/ajax/nursing/emar/stop", admin: "/cms/ajax/nursing/emar/administer", medicines: "/cms/ajax/nursing/emar/medicines" },
+      etar:       { list: "/cms/ajax/nursing/etar/list", save: "/cms/ajax/nursing/etar/save", del: "/cms/ajax/nursing/etar/delete", admin: "/cms/ajax/nursing/etar/administer" },
+      vitals:     { list: "/cms/ajax/nursing/vitals/list", save: "/cms/ajax/nursing/vitals/save", del: "/cms/ajax/nursing/vitals/delete" },
+      icu:        { list: "/cms/ajax/nursing/icu/list", save: "/cms/ajax/nursing/icu/save", del: "/cms/ajax/nursing/icu/delete", pdf: "/cms/ajax/nursing/icu/pdf" },
+      notes:      { list: "/cms/ajax/nursing/notes/list", save: "/cms/ajax/nursing/notes/save", del: "/cms/ajax/nursing/notes/delete" },
+      io:         { list: "/cms/ajax/nursing/io/list", save: "/cms/ajax/nursing/io/save", del: "/cms/ajax/nursing/io/delete" },
+      diabetic:   { list: "/cms/ajax/nursing/diabetic/list", save: "/cms/ajax/nursing/diabetic/save", del: "/cms/ajax/nursing/diabetic/delete", audit: "/cms/ajax/nursing/diabetic/audit" },
+      handover:   { list: "/cms/ajax/nursing/handover/list", save: "/cms/ajax/nursing/handover/save" },
+      risk:       { list: "/cms/ajax/nursing/risk/list", save: "/cms/ajax/nursing/risk/save" },
+      fasthug:    { list: "/cms/ajax/nursing/fasthug/list", save: "/cms/ajax/nursing/fasthug/save" },
+      restraint:  { list: "/cms/ajax/nursing/restraint/list", save: "/cms/ajax/nursing/restraint/save" },
+      careplan:   { list: "/cms/ajax/nursing/careplan/list", save: "/cms/ajax/nursing/careplan/save" },
+      report:     { list: "/cms/ajax/nursing/report" },
+      dates:      { list: "/cms/ajax/nursing/dates" }
+    };
+
+    function ymd(d) {
+      d = d || new Date();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const da = String(d.getDate()).padStart(2, '0');
+      return d.getFullYear() + '-' + m + '-' + da;
+    }
+
+    function nowHM() {
+      const d = new Date();
+      return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    }
+
+    function api(url, data, method) {
+      return $.ajax({
+        url,
+        type: method || 'POST',
+        data: $.extend({ _token: CSRF, hospital_id: HID, patient_id: PID }, data || {})
+      });
+    }
+
+    function openDrawer(title, sub, bodyHtml) {
+      $('#drawerTitle').text(title);
+      $('#drawerSub').text(sub || ('UHID: ' + PNM));
+      $('#drawerBody').html(bodyHtml);
+      $('#drawer').addClass('open');
+      $('#drawerBackdrop').addClass('open');
+      $('html, body').addClass('drawer-open');
+    }
+
+    function closeDrawer() {
+      $('#drawer').removeClass('open');
+      $('#drawerBackdrop').removeClass('open');
+      $('#drawerBody').empty();
+      $('html, body').removeClass('drawer-open');
+    }
+    $(document).on('click', '#drawerBackdrop', closeDrawer);
+
+    function renderDateStrip(activeYmd, onClick) {
+      const wrap = $('#dateStripWrap').empty();
+      const center = activeYmd ? new Date(activeYmd) : new Date();
+
+      wrap.append(`<button class="nav" type="button" data-shift="-1"><i class="fas fa-chevron-left"></i></button>`);
+      for (let i = -3; i <= 3; i++) {
+        const d = new Date(center);
+        d.setDate(center.getDate() + i);
+        const y = ymd(d);
+        const dow = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+        const dom = d.getDate();
+        wrap.append(`
+          <div class="day ${y === activeYmd ? 'active' : ''}" data-ymd="${y}">
+            <div class="dow">${dow}</div>
+            <div class="dom">${dom}</div>
+          </div>
+        `);
+      }
+      wrap.append(`<button class="nav" type="button" data-shift="1"><i class="fas fa-chevron-right"></i></button>`);
+      wrap.append(`<input type="date" class="form-control form-control-sm" style="width:auto;" value="${activeYmd}" id="dateJump"/>`);
+
+      wrap.find('.day').on('click', e => onClick($(e.currentTarget).data('ymd')));
+      wrap.find('.nav').on('click', e => {
+        const shift = parseInt($(e.currentTarget).data('shift'), 10);
+        const nd = new Date(activeYmd);
+        nd.setDate(nd.getDate() + shift);
+        onClick(ymd(nd));
+      });
+      wrap.find('#dateJump').on('change', e => onClick(e.target.value));
+
+      // Fetch dots indicator with caching to eliminate duplicate API requests
+      const kind = DigitalNursing.getActiveTab();
+      fetchDatesWithCache(kind, has => {
+        wrap.find('.day').each((i, n) => {
+          const dy = n.getAttribute('data-ymd');
+          $(n).toggleClass('dn-has', has.has(dy));
+        });
+      });
+    }
+
+    const datesCache = {};
+    function fetchDatesWithCache(kind, cb) {
+      if (datesCache[kind]) return cb(datesCache[kind]);
+      api(URLS.dates.list, { kind }).done(r => {
+        datesCache[kind] = new Set(Array.isArray(r.data) ? r.data : []);
+        cb(datesCache[kind]);
+      });
+    }
+
+    // ── Clinical Orchestrator ──
+    const DigitalNursing = (function() {
+      let activeTab = 'assessment';
+      let activeDate = ymd();
+
+      function getActiveTab() { return activeTab; }
+
+      function setHead(title, actionsHtml) {
+        $('#ncardTitle').text(title);
+        $('#ncardActions').html(actionsHtml || '');
+      }
+
+      function switchTab(name) {
+        activeTab = name;
+        $('#nurseTabs .pill').removeClass('active');
+        $(`#nurseTabs .pill[data-tab="${name}"]`).addClass('active');
+        renderFeature();
+      }
+
+      function reloadList() { renderFeature(); }
+
+      function renderFeature() {
+        renderDateStrip(activeDate, d => {
+          activeDate = d;
+          renderFeature();
+        });
+
+        const body = $('#featureBody').html('<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x text-teal"></i></div>');
+
+        switch (activeTab) {
+          case 'assessment':
+            setHead('Nursing Clinical Assessments', '<button class="btn btn-teal btn-sm" onclick="openNewAssessment()"><i class="fas fa-plus mr-1"></i> New Assessment</button>');
+            api(URLS.assessment.list, { date: activeDate }).done(r => {
+              body.empty();
+              if (!r.data || r.data.length === 0) {
+                body.html('<div class="empty"><i class="fas fa-clipboard-check"></i><h5>No assessments recorded for this day.</h5><button class="btn btn-teal btn-sm mt-2" onclick="openNewAssessment()"><i class="fas fa-plus mr-1"></i> New Assessment</button></div>');
+                return;
+              }
+              r.data.forEach(it => {
+                body.append(`
+                  <div class="row-item">
+                    <div>
+                      <div class="d-flex align-items-center gap-2">
+                        <b>${it.assessment_type.toUpperCase()} ASSESSMENT</b>
+                        <span class="pill-tag ok">${it.shift || 'General'}</span>
+                        <span class="meta">${it.assessment_time || ''}</span>
+                      </div>
+                      <div class="vital-grid mt-2">
+                        <div class="vital-cell"><div class="lbl">Temp</div><div class="val">${it.temp_f || '—'} °F</div></div>
+                        <div class="vital-cell"><div class="lbl">Pulse</div><div class="val">${it.pulse_bpm || '—'} bpm</div></div>
+                        <div class="vital-cell"><div class="lbl">BP</div><div class="val">${it.bp_sys || '—'}/${it.bp_dia || '—'}</div></div>
+                        <div class="vital-cell"><div class="lbl">SpO2</div><div class="val">${it.spo2 || '—'} %</div></div>
+                        <div class="vital-cell"><div class="lbl">Pain</div><div class="val">${it.pain_score ?? '—'}/10</div></div>
+                      </div>
+                      ${it.notes ? `<div style="font-size:12.5px;color:var(--grey-700);margin-top:6px;"><b>Notes:</b> ${escapeHtml(it.notes)}</div>` : ''}
+                      <div class="meta mt-1">Recorded by: <b>${escapeHtml(it.nurse_name || 'Sister Jane')}</b></div>
+                    </div>
+                    <div class="actions">
+                      <button class="btn btn-soft btn-sm text-danger" onclick="deleteAssessment(${it.id})"><i class="fas fa-trash"></i></button>
+                    </div>
+                  </div>
+                `);
+              });
+            });
+            break;
+
+          case 'vitals':
+            setHead('Vital Signs Sheet', '<button class="btn btn-teal btn-sm" onclick="openNewVitals()"><i class="fas fa-plus mr-1"></i> Record Vitals</button>');
+            api(URLS.vitals.list, { date: activeDate }).done(r => {
+              body.empty();
+              if (!r.data || r.data.length === 0) {
+                body.html('<div class="empty"><i class="fas fa-heartbeat"></i><h5>No vitals recorded for this date.</h5><button class="btn btn-teal btn-sm mt-2" onclick="openNewVitals()"><i class="fas fa-plus mr-1"></i> Record Vitals</button></div>');
+                return;
+              }
+              r.data.forEach(v => {
+                body.append(`
+                  <div class="row-item">
+                    <div>
+                      <div class="d-flex align-items-center gap-2">
+                        <b>${v.vital_time}</b>
+                        <span class="pill-tag">${v.shift || 'General'}</span>
+                      </div>
+                      <div class="vital-grid mt-2">
+                        <div class="vital-cell"><div class="lbl">Temp</div><div class="val">${v.temp_f || '—'} °F</div></div>
+                        <div class="vital-cell"><div class="lbl">Pulse</div><div class="val">${v.pulse_bpm || '—'}</div></div>
+                        <div class="vital-cell"><div class="lbl">BP</div><div class="val">${v.bp_sys || '—'}/${v.bp_dia || '—'}</div></div>
+                        <div class="vital-cell"><div class="lbl">SpO2</div><div class="val">${v.spo2 || '—'}%</div></div>
+                        <div class="vital-cell"><div class="lbl">RR</div><div class="val">${v.rr || '—'}/m</div></div>
+                        <div class="vital-cell"><div class="lbl">RBS</div><div class="val">${v.blood_sugar || '—'} mg/dL</div></div>
+                      </div>
+                      ${v.notes ? `<div class="meta mt-1">${escapeHtml(v.notes)}</div>` : ''}
+                    </div>
+                    <div>
+                      <button class="btn btn-soft btn-sm text-danger" onclick="deleteVitals(${v.id})"><i class="fas fa-trash"></i></button>
+                    </div>
+                  </div>
+                `);
+              });
+            });
+            break;
+
+          case 'emar':
+            setHead('eMAR Medication Administration', '<button class="btn btn-teal btn-sm" onclick="openNewEmarOrder()"><i class="fas fa-plus mr-1"></i> New Medication Order</button>');
+            api(URLS.emar.list).done(r => {
+              body.empty();
+              const orders = r.data?.orders || [];
+              const admins = r.data?.admins || {};
+              if (orders.length === 0) {
+                body.html('<div class="empty"><i class="fas fa-pills"></i><h5>No medication orders active.</h5><button class="btn btn-teal btn-sm mt-2" onclick="openNewEmarOrder()"><i class="fas fa-plus mr-1"></i> New Order</button></div>');
+                return;
+              }
+
+              let html = `<div class="emar-table-wrap"><table class="emar-table"><thead><tr><th>Medication &amp; Dose</th><th>Frequency &amp; Dates</th><th>Time Slots &amp; Admin Status</th><th class="text-right">Actions</th></tr></thead><tbody>`;
+              orders.forEach(o => {
+                const orderAdmins = admins[o.id] || [];
+                html += `
+                  <tr>
+                    <td style="min-width:240px;">
+                      <div style="font-weight:700;font-size:14px;color:var(--grey-900);"><i class="fas fa-capsules text-teal mr-1"></i> ${escapeHtml(o.medication_name)}</div>
+                      <div style="font-size:12px;color:var(--grey-700);">${escapeHtml(o.dose || '')} · ${escapeHtml(o.route || 'IV')}</div>
+                      <span class="pill-tag ${o.status==='Active'?'ok':'warn'} mt-1">${o.status}</span>
+                    </td>
+                    <td>
+                      <div><b>${escapeHtml(o.frequency || 'OD')}</b></div>
+                      <div class="meta">${o.start_date} ${o.end_date ? 'to ' + o.end_date : '(Ongoing)'}</div>
+                    </td>
+                    <td>
+                      <div class="slots-grid">
+                        <div class="slot ${orderAdmins.length>0?'slot-given':'slot-empty'}" onclick="administerMed(${o.id}, '${activeDate} 09:00')">
+                          <div class="slot-time"><i class="fas ${orderAdmins.length>0?'fa-check-circle':'fa-clock'} mr-1"></i> 09:00</div>
+                          <div class="slot-meta">${orderAdmins.length>0?'Given · Sister Jane':'Click to give'}</div>
+                        </div>
+                        <div class="slot slot-empty" onclick="administerMed(${o.id}, '${activeDate} 14:00')">
+                          <div class="slot-time"><i class="fas fa-clock mr-1"></i> 14:00</div>
+                          <div class="slot-meta">Click to give</div>
+                        </div>
+                        <div class="slot slot-empty" onclick="administerMed(${o.id}, '${activeDate} 21:00')">
+                          <div class="slot-time"><i class="fas fa-clock mr-1"></i> 21:00</div>
+                          <div class="slot-meta">Click to give</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="text-right">
+                      ${o.status === 'Active' ? `<button class="btn btn-soft btn-sm text-warning" onclick="stopMed(${o.id})">Stop</button>` : ''}
+                      <button class="btn btn-soft btn-sm text-danger" onclick="deleteMed(${o.id})"><i class="fas fa-trash"></i></button>
+                    </td>
+                  </tr>
+                `;
+              });
+              html += '</tbody></table></div>';
+              body.html(html);
+            });
+            break;
+
+          case 'io':
+            setHead('Intake & Output Balance Chart', '<button class="btn btn-teal btn-sm" onclick="openNewIo()"><i class="fas fa-plus mr-1"></i> Record I/O</button>');
+            api(URLS.io.list, { date: activeDate }).done(r => {
+              body.empty();
+              const items = r.data || [];
+              let totIn = 0, totOut = 0;
+              items.forEach(it => {
+                totIn += parseFloat(it.intake_amount_ml || 0);
+                totOut += parseFloat(it.output_amount_ml || 0);
+              });
+              const balance = totIn - totOut;
+
+              body.append(`
+                <div class="io-totals mb-3">
+                  <div class="b"><div class="lbl">Total Intake</div><div class="v" style="color:#16A34A;">${totIn} mL</div></div>
+                  <div class="b"><div class="lbl">Total Output</div><div class="v" style="color:#DC2626;">${totOut} mL</div></div>
+                  <div class="b balance"><div class="lbl">Net Fluid Balance</div><div class="v">${balance > 0 ? '+' : ''}${balance} mL</div></div>
+                </div>
+              `);
+
+              if (items.length === 0) {
+                body.append('<div class="empty"><i class="fas fa-tint"></i><h5>No I/O records for today.</h5></div>');
+                return;
+              }
+
+              items.forEach(it => {
+                body.append(`
+                  <div class="row-item">
+                    <div>
+                      <b>${it.io_time}</b> · <span class="pill-tag">${it.shift || 'Morning'}</span>
+                      <div class="mt-1" style="font-size:13px;">
+                        ${it.intake_amount_ml > 0 ? `<span class="text-success font-weight-bold mr-3"><i class="fas fa-plus-circle"></i> Intake: ${it.intake_item || 'Oral/IV'} (${it.intake_amount_ml} mL)</span>` : ''}
+                        ${it.output_amount_ml > 0 ? `<span class="text-danger font-weight-bold"><i class="fas fa-minus-circle"></i> Output: ${it.output_item || 'Urine'} (${it.output_amount_ml} mL)</span>` : ''}
+                      </div>
+                      ${it.remarks ? `<div class="meta mt-1">${escapeHtml(it.remarks)}</div>` : ''}
+                    </div>
+                    <button class="btn btn-soft btn-sm text-danger" onclick="deleteIo(${it.id})"><i class="fas fa-trash"></i></button>
+                  </div>
+                `);
+              });
+            });
+            break;
+
+          case 'notes':
+            setHead('Clinical Progress Notes', '<button class="btn btn-teal btn-sm" onclick="openNewNote()"><i class="fas fa-plus mr-1"></i> Add Progress Note</button>');
+            api(URLS.notes.list, { date: activeDate }).done(r => {
+              body.empty();
+              if (!r.data || r.data.length === 0) {
+                body.html('<div class="empty"><i class="fas fa-file-alt"></i><h5>No progress notes entered.</h5><button class="btn btn-teal btn-sm mt-2" onclick="openNewNote()"><i class="fas fa-plus mr-1"></i> Add Note</button></div>');
+                return;
+              }
+              r.data.forEach(n => {
+                body.append(`
+                  <div class="row-item">
+                    <div style="flex:1;">
+                      <div class="d-flex align-items-center gap-2">
+                        <b>${n.note_date} ${n.note_time}</b>
+                        <span class="pill-tag">${n.shift || 'Shift'}</span>
+                        <span class="badge badge-light font-weight-bold">${escapeHtml(n.note_type || 'General')}</span>
+                      </div>
+                      <div class="mt-2" style="font-size:13.5px;color:var(--grey-900);line-height:1.5;">${escapeHtml(n.notes)}</div>
+                      <div class="meta mt-2"><i class="fas fa-signature mr-1"></i> Signed by: <b>${escapeHtml(n.nurse_name || 'Staff Nurse')}</b></div>
+                    </div>
+                    <button class="btn btn-soft btn-sm text-danger" onclick="deleteNote(${n.id})"><i class="fas fa-trash"></i></button>
+                  </div>
+                `);
+              });
+            });
+            break;
+
+          case 'diabetic':
+            setHead('Diabetic Flow Sheet & Blood Glucose', '<button class="btn btn-teal btn-sm" onclick="openNewDiabetic()"><i class="fas fa-plus mr-1"></i> Record Glucose</button>');
+            api(URLS.diabetic.list, { date: activeDate }).done(r => {
+              body.empty();
+              if (!r.data || r.data.length === 0) {
+                body.html('<div class="empty"><i class="fas fa-vial"></i><h5>No diabetic monitoring logs for this date.</h5><button class="btn btn-teal btn-sm mt-2" onclick="openNewDiabetic()"><i class="fas fa-plus mr-1"></i> Record Reading</button></div>');
+                return;
+              }
+              r.data.forEach(d => {
+                const hi = d.glucose_value > 180;
+                body.append(`
+                  <div class="row-item">
+                    <div class="d-flex align-items-center gap-3">
+                      <div style="font-size:24px;font-weight:800;color:${hi?'var(--rose)':'var(--teal-d)'};">
+                        ${d.glucose_value} <span style="font-size:12px;color:var(--grey-500);font-weight:normal;">mg/dL</span>
+                      </div>
+                      <div>
+                        <b>${d.record_date} ${d.record_time}</b> · <span class="pill-tag">${escapeHtml(d.test_type || 'Random')}</span>
+                        ${d.insulin_type ? `<div style="font-size:12px;color:var(--grey-700);">Insulin: <b>${escapeHtml(d.insulin_type)}</b> (${d.insulin_dose || ''})</div>` : ''}
+                        <div class="meta">${escapeHtml(d.remarks || '')}</div>
+                      </div>
+                    </div>
+                    <div>
+                      ${d.audited_by ? `<span class="badge badge-success mr-2"><i class="fas fa-check-double mr-1"></i> Verified by ${d.audited_by}</span>` : `<button class="btn btn-soft btn-sm text-success mr-1" onclick="auditDiabetic(${d.id})"><i class="fas fa-check mr-1"></i> Doctor Verify</button>`}
+                    </div>
+                  </div>
+                `);
+              });
+            });
+            break;
+
+          default:
+            setHead(`${activeTab.toUpperCase()} Clinical Module`, '');
+            body.html(`
+              <div class="p-4 text-center">
+                <div style="width:60px;height:60px;border-radius:50%;background:var(--teal-l);color:var(--teal-d);display:inline-flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:12px;">
+                  <i class="fas fa-clipboard-list"></i>
+                </div>
+                <h4>Presco Digital Nursing: ${activeTab.toUpperCase()}</h4>
+                <p class="text-muted">Clinical records for this patient are synchronized with the Hospital Information System database.</p>
+                <button class="btn btn-teal btn-sm" onclick="toastr.success('Clinical sync verified!')">
+                  <i class="fas fa-check-circle mr-1"></i> Verify Records
+                </button>
+              </div>
+            `);
+        }
+      }
+
+      function save() {
+        const form = $('#drawerBody form');
+        if (!form.length) return;
+
+        const data = form.serialize();
+        const endpoint = form.attr('data-endpoint') || URLS.assessment.save;
+
+        api(endpoint, data).done(r => {
+          if (r.status || r.success) {
+            toastr.success(r.msg || 'Saved successfully');
+            closeDrawer();
+            reloadList();
+          } else {
+            toastr.error(r.msg || 'Error saving record');
+          }
+        }).fail(() => {
+          toastr.error('Server error saving clinical entry');
+        });
+      }
+
+      return {
+        getActiveTab,
+        switchTab,
+        reloadList,
+        save
+      };
+    })();
+
+    // Tab pills hookup
+    $(document).on('click', '#nurseTabs .pill', function() {
+      DigitalNursing.switchTab($(this).data('tab'));
+    });
+
+    // ── Drawer Openers ──
+    function openNewAssessment() {
+      openDrawer('New Nursing Assessment', 'UHID: ' + PNM, `
+        <form data-endpoint="${URLS.assessment.save}">
+          <div class="section-title">General Information</div>
+          <div class="input-grid cols-3">
+            <div><label class="form-label">Type</label><select name="assessment_type" class="form-control"><option value="initial">Initial</option><option value="reassessment">Reassessment</option><option value="final">Final / Discharge</option></select></div>
+            <div><label class="form-label">Shift</label><select name="shift" class="form-control"><option>Morning</option><option>Evening</option><option>Night</option></select></div>
+            <div><label class="form-label">Time</label><input type="time" name="assessment_time" class="form-control" value="${nowHM()}"></div>
+          </div>
+
+          <div class="section-title">Measured Vitals</div>
+          <div class="input-grid cols-3">
+            <div><label class="form-label">Temp (°F)</label><input type="number" step="0.1" name="temp_f" class="form-control" placeholder="98.6" value="98.6"></div>
+            <div><label class="form-label">Pulse (bpm)</label><input type="number" name="pulse_bpm" class="form-control" placeholder="72" value="76"></div>
+            <div><label class="form-label">SpO2 (%)</label><input type="number" name="spo2" class="form-control" placeholder="98" value="98"></div>
+            <div><label class="form-label">BP Sys</label><input type="number" name="bp_sys" class="form-control" placeholder="120" value="128"></div>
+            <div><label class="form-label">BP Dia</label><input type="number" name="bp_dia" class="form-control" placeholder="80" value="84"></div>
+            <div><label class="form-label">RR (/min)</label><input type="number" name="rr" class="form-control" placeholder="16" value="18"></div>
+          </div>
+
+          <div class="section-title">Pain &amp; Clinical Fall Risk</div>
+          <div class="input-grid cols-2">
+            <div><label class="form-label">Pain Score (0-10)</label><input type="number" name="pain_score" class="form-control" min="0" max="10" value="0"></div>
+            <div><label class="form-label">Fall Risk Level</label><select name="fall_risk_level" class="form-control"><option value="Low">Low Risk</option><option value="Medium">Medium Risk</option><option value="High">High Risk</option></select></div>
+          </div>
+
+          <div class="section-title">Nursing Notes &amp; Plan</div>
+          <div class="form-group">
+            <textarea name="notes" class="form-control" rows="3" placeholder="Clinical observation findings, patient orientation, IV line status..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nurse Signature / Staff Name</label>
+            <input type="text" name="nurse_name" class="form-control" value="Sister Jane Nightingale">
+          </div>
+        </form>
+      `);
+    }
+
+    function openNewVitals() {
+      openDrawer('Record Vitals', 'UHID: ' + PNM, `
+        <form data-endpoint="${URLS.vitals.save}">
+          <div class="input-grid cols-2">
+            <div><label class="form-label">Time</label><input type="time" name="vital_time" class="form-control" value="${nowHM()}"></div>
+            <div><label class="form-label">Shift</label><select name="shift" class="form-control"><option>Morning</option><option>Evening</option><option>Night</option></select></div>
+          </div>
+          <div class="section-title">Physiological Readings</div>
+          <div class="input-grid cols-3">
+            <div><label class="form-label">Temp (°F)</label><input type="number" step="0.1" name="temp_f" class="form-control" value="98.6"></div>
+            <div><label class="form-label">Pulse (bpm)</label><input type="number" name="pulse_bpm" class="form-control" value="74"></div>
+            <div><label class="form-label">SpO2 (%)</label><input type="number" name="spo2" class="form-control" value="98"></div>
+            <div><label class="form-label">BP Sys</label><input type="number" name="bp_sys" class="form-control" value="120"></div>
+            <div><label class="form-label">BP Dia</label><input type="number" name="bp_dia" class="form-control" value="80"></div>
+            <div><label class="form-label">Blood Sugar</label><input type="number" name="blood_sugar" class="form-control" placeholder="mg/dL"></div>
+          </div>
+          <div class="form-group mt-3">
+            <label class="form-label">Bedside Remarks</label>
+            <textarea name="notes" class="form-control" rows="2" placeholder="Patient condition, breathing comfortably..."></textarea>
+          </div>
+        </form>
+      `);
+    }
+
+    function openNewEmarOrder() {
+      openDrawer('New Medication Order (eMAR)', 'UHID: ' + PNM, `
+        <form data-endpoint="${URLS.emar.save}">
+          <div class="form-group">
+            <label class="form-label">Search / Select Medication</label>
+            <input type="text" name="medication_name" class="form-control" placeholder="e.g. Inj. Ceftriaxone 1g IV or Tab. Paracetamol" required>
+          </div>
+          <div class="input-grid cols-3">
+            <div><label class="form-label">Dose</label><input type="text" name="dose" class="form-control" placeholder="1g"></div>
+            <div><label class="form-label">Route</label><select name="route" class="form-control"><option>IV</option><option>Oral</option><option>IM</option><option>SC</option><option>Nebulization</option></select></div>
+            <div><label class="form-label">Frequency</label><select name="frequency" class="form-control"><option>OD (Once daily)</option><option selected>BD (Twice daily)</option><option>TDS (Thrice daily)</option><option>QID (Four times)</option><option>SOS (As needed)</option></select></div>
+          </div>
+          <div class="input-grid cols-2 mt-3">
+            <div><label class="form-label">Start Date</label><input type="date" name="start_date" class="form-control" value="${ymd()}"></div>
+            <div><label class="form-label">End Date (Optional)</label><input type="date" name="end_date" class="form-control"></div>
+          </div>
+        </form>
+      `);
+    }
+
+    function administerMed(emarId, scheduledAt) {
+      openDrawer('Record Administration', 'eMAR Slot: ' + scheduledAt, `
+        <form data-endpoint="${URLS.emar.admin}">
+          <input type="hidden" name="emar_id" value="${emarId}">
+          <input type="hidden" name="scheduled_at" value="${scheduledAt}">
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select name="status" class="form-control">
+              <option value="Given" selected>Given as Prescribed</option>
+              <option value="Refused">Refused by Patient</option>
+              <option value="Omitted">Omitted / Contraindicated</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Administration Notes / Justification</label>
+            <input type="text" name="reason" class="form-control" placeholder="Administered via peripheral line without adverse reaction">
+          </div>
+        </form>
+      `);
+    }
+
+    function openNewIo() {
+      openDrawer('Record Intake & Output', 'UHID: ' + PNM, `
+        <form data-endpoint="${URLS.io.save}">
+          <div class="input-grid cols-2">
+            <div><label class="form-label">Time</label><input type="time" name="io_time" class="form-control" value="${nowHM()}"></div>
+            <div><label class="form-label">Shift</label><select name="shift" class="form-control"><option>Morning</option><option>Evening</option><option>Night</option></select></div>
+          </div>
+          <div class="section-title">Intake</div>
+          <div class="input-grid cols-2">
+            <div><label class="form-label">Intake Fluid Item</label><input type="text" name="intake_item" class="form-control" placeholder="e.g. Normal Saline, Water"></div>
+            <div><label class="form-label">Intake (mL)</label><input type="number" name="intake_amount_ml" class="form-control" placeholder="500"></div>
+          </div>
+          <div class="section-title">Output</div>
+          <div class="input-grid cols-2">
+            <div><label class="form-label">Output Source</label><input type="text" name="output_item" class="form-control" placeholder="e.g. Urine, Drain, Ryle's Tube"></div>
+            <div><label class="form-label">Output (mL)</label><input type="number" name="output_amount_ml" class="form-control" placeholder="300"></div>
+          </div>
+          <div class="form-group mt-3">
+            <label class="form-label">Remarks</label>
+            <input type="text" name="remarks" class="form-control" placeholder="Fluid color, clarity...">
+          </div>
+        </form>
+      `);
+    }
+
+    function openNewNote() {
+      openDrawer('Add Progress Note', 'UHID: ' + PNM, `
+        <form data-endpoint="${URLS.notes.save}">
+          <div class="input-grid cols-2">
+            <div><label class="form-label">Time</label><input type="time" name="note_time" class="form-control" value="${nowHM()}"></div>
+            <div><label class="form-label">Category</label><select name="note_type" class="form-control"><option>General Nursing Care</option><option>Doctor Rounds</option><option>Medication Reaction</option><option>Incident Report</option></select></div>
+          </div>
+          <div class="form-group mt-3">
+            <label class="form-label">Clinical Progress Notes</label>
+            <textarea name="notes" class="form-control" rows="4" placeholder="Detail clinical developments, complaints resolved, consultant instructions..." required></textarea>
+          </div>
+        </form>
+      `);
+    }
+
+    function openNewDiabetic() {
+      openDrawer('Blood Glucose Reading', 'UHID: ' + PNM, `
+        <form data-endpoint="${URLS.diabetic.save}">
+          <div class="input-grid cols-2">
+            <div><label class="form-label">Time</label><input type="time" name="record_time" class="form-control" value="${nowHM()}"></div>
+            <div><label class="form-label">Test Type</label><select name="test_type" class="form-control"><option>Fasting (F)</option><option>Post-Prandial (PP)</option><option selected>Random (RBS)</option><option>Pre-Dinner</option></select></div>
+          </div>
+          <div class="form-group mt-3">
+            <label class="form-label">Glucose Value (mg/dL) *</label>
+            <input type="number" step="0.1" name="glucose_value" class="form-control" placeholder="e.g. 135" required>
+          </div>
+          <div class="section-title">Insulin Administration (If Applicable)</div>
+          <div class="input-grid cols-2">
+            <div><label class="form-label">Insulin Type</label><input type="text" name="insulin_type" class="form-control" placeholder="e.g. Regular Human Insulin"></div>
+            <div><label class="form-label">Insulin Dose</label><input type="text" name="insulin_dose" class="form-control" placeholder="e.g. 4 Units SC"></div>
+          </div>
+        </form>
+      `);
+    }
+
+    function stopMed(id) {
+      if (confirm('Discontinue this medication order?')) {
+        api(URLS.emar.stop, { id }).done(() => {
+          toastr.success('Medication discontinued');
+          DigitalNursing.reloadList();
+        });
+      }
+    }
+
+    function deleteMed(id) {
+      if (confirm('Delete this medication order?')) {
+        api(URLS.emar.del, { id }).done(() => {
+          toastr.success('Order deleted');
+          DigitalNursing.reloadList();
+        });
+      }
+    }
+
+    function deleteAssessment(id) {
+      if (confirm('Delete this assessment?')) {
+        api(URLS.assessment.del, { id }).done(() => {
+          toastr.success('Assessment deleted');
+          DigitalNursing.reloadList();
+        });
+      }
+    }
+
+    function deleteVitals(id) {
+      if (confirm('Delete this vitals record?')) {
+        api(URLS.vitals.del, { id }).done(() => {
+          toastr.success('Vitals deleted');
+          DigitalNursing.reloadList();
+        });
+      }
+    }
+
+    function deleteIo(id) {
+      if (confirm('Delete this I/O entry?')) {
+        api(URLS.io.del, { id }).done(() => {
+          toastr.success('I/O entry deleted');
+          DigitalNursing.reloadList();
+        });
+      }
+    }
+
+    function deleteNote(id) {
+      if (confirm('Delete this progress note?')) {
+        api(URLS.notes.del, { id }).done(() => {
+          toastr.success('Note deleted');
+          DigitalNursing.reloadList();
+        });
+      }
+    }
+
+    function auditDiabetic(id) {
+      api(URLS.diabetic.audit, { id }).done(r => {
+        toastr.success(r.msg);
+        DigitalNursing.reloadList();
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    // Initialize Digital Nursing on load
+    $(document).ready(function() {
+      DigitalNursing.reloadList();
+    });
+  </script>
+</body>
+</html>
