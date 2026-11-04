@@ -1,9 +1,27 @@
 const path = require('path');
 const fs = require('fs');
-const initSqlJs = require('sql.js');
+// Use inline WASM build to avoid missing external .wasm binary in serverless / Lambda bundles
+const initSqlJs = require('sql.js/dist/sql-wasm-inline.js');
 
 const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NOW_REGION);
-const LOCAL_DB_PATH = path.join(__dirname, '../../data/presco.db');
+
+function findBundledDb() {
+  const candidates = [
+    path.join(__dirname, '../../data/presco.db'),
+    path.join(process.cwd(), 'data/presco.db'),
+    path.join(__dirname, '../data/presco.db'),
+    path.join(__dirname, 'data/presco.db'),
+    path.resolve('data/presco.db')
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+const LOCAL_DB_PATH = findBundledDb() || path.join(__dirname, '../../data/presco.db');
 const DB_PATH = isServerless ? path.join('/tmp', 'presco.db') : LOCAL_DB_PATH;
 let db = null;
 let SQL = null;
@@ -24,11 +42,14 @@ async function getDatabase() {
     SQL = await initSqlJs();
   }
 
+  const bundled = findBundledDb();
+
   // If in serverless and /tmp/presco.db does not exist, copy from bundled db if available
   if (isServerless && !fs.existsSync(DB_PATH)) {
-    if (fs.existsSync(LOCAL_DB_PATH)) {
+    if (bundled) {
       try {
-        fs.copyFileSync(LOCAL_DB_PATH, DB_PATH);
+        fs.copyFileSync(bundled, DB_PATH);
+        console.log(`Copied bundled DB from ${bundled} to ${DB_PATH}`);
       } catch (e) {
         console.warn('Could not copy bundled DB to /tmp:', e.message);
       }
@@ -40,13 +61,15 @@ async function getDatabase() {
       const fileBuffer = fs.readFileSync(DB_PATH);
       db = new SQL.Database(fileBuffer);
     } catch (e) {
+      console.warn('Could not read DB_PATH:', e.message);
       db = new SQL.Database();
     }
-  } else if (fs.existsSync(LOCAL_DB_PATH)) {
+  } else if (bundled) {
     try {
-      const fileBuffer = fs.readFileSync(LOCAL_DB_PATH);
+      const fileBuffer = fs.readFileSync(bundled);
       db = new SQL.Database(fileBuffer);
     } catch (e) {
+      console.warn('Could not read bundled DB:', e.message);
       db = new SQL.Database();
     }
   } else {
@@ -66,16 +89,21 @@ async function getDatabase() {
       await seed();
       await migrateDoctor();
       await seedDoctor();
+      saveDatabase(true);
     }
   } catch (err) {
     console.warn('Auto-schema check note:', err.message);
   }
 
   // Enable foreign keys and performance optimizations
-  db.run('PRAGMA foreign_keys = ON;');
-  db.run('PRAGMA synchronous = NORMAL;');
-  db.run('PRAGMA cache_size = -64000;'); // 64MB cache
-  db.run('PRAGMA temp_store = MEMORY;');
+  try {
+    db.run('PRAGMA foreign_keys = ON;');
+    db.run('PRAGMA synchronous = NORMAL;');
+    db.run('PRAGMA cache_size = -64000;'); // 64MB cache
+    db.run('PRAGMA temp_store = MEMORY;');
+  } catch (e) {
+    // Ignore pragma errors
+  }
 
   return db;
 }

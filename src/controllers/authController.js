@@ -59,7 +59,7 @@ async function login(req, res) {
     console.error('Login error:', err);
     return res.render('login', {
       title: 'Sign In | Presco Digital Nursing',
-      error: 'An unexpected error occurred. Please try again.',
+      error: `Login failed: ${err.message || 'An unexpected error occurred. Please try again.'}`,
       returnTo
     });
   }

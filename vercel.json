@@ -2,7 +2,11 @@
   "version": 2,
   "functions": {
     "server.js": {
-      "includeFiles": "{views,public,data}/**"
+      "includeFiles": [
+        "views/**",
+        "public/**",
+        "data/**"
+      ]
     }
   },
   "rewrites": [
