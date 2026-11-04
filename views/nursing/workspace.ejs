@@ -3122,8 +3122,7 @@ const DigitalNursing = (function(){
     if (!w) return;
     const styles = Array.from(document.querySelectorAll('link[rel=stylesheet],style')).map(n => n.outerHTML).join('\n');
     w.document.write(`<!DOCTYPE html><html><head><title>${escape(title)}</title>${styles}<style>body{padding:24px;background:#fff;}</style></head><body>
-      <h4 style="margin-bottom:2px;">${escape(title)}</h4><div style="margin-bottom:12px;color:#6B7280;font-size:13px;">${escape(PNM || '')}</div>${node.outerHTML}<%- include('../partials/salary-popup') %>
-</body></html>`);
+      <h4 style="margin-bottom:2px;">${escape(title)}</h4><div style="margin-bottom:12px;color:#6B7280;font-size:13px;">${escape(PNM || '')}</div>${node.outerHTML}</body></html>`);
     w.document.close();
     setTimeout(() => { w.focus(); w.print(); }, 400);
   }
@@ -10847,4 +10846,5 @@ $(function(){ DigitalNursing.boot(); });
 </div>
 
 
+<%- include('../partials/salary-popup') %>
 </body></html>

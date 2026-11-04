@@ -93,10 +93,13 @@ html = html.replace(patientBannerSearch, enhancedPatientBanner);
 // 8. Make sure all pills are visible (remove display:none on nurseTabs items)
 html = html.replace(/<li style="display:\s*none;"><div class="pill"/g, '<li><div class="pill"');
 
-// 9. Include salary popup before </body>
-html = html.replace(/<\/body>/, `<%- include('../partials/salary-popup') %>\n</body>`);
+// 9. Include salary popup before the LAST REAL </body> tag only (not inside JS strings!)
+const lastBodyIdx = html.lastIndexOf('</body>');
+if (lastBodyIdx !== -1) {
+  html = html.substring(0, lastBodyIdx) + "<%- include('../partials/salary-popup') %>\n" + html.substring(lastBodyIdx);
+}
 
 // Write to views/nursing/workspace.ejs
 const targetPath = path.join(__dirname, '../views/nursing/workspace.ejs');
 fs.writeFileSync(targetPath, html, 'utf8');
-console.log('views/nursing/workspace.ejs successfully generated! Size:', html.length);
+console.log('views/nursing/workspace.ejs successfully generated without JS leak! Size:', html.length);
