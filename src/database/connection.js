@@ -56,22 +56,40 @@ async function getDatabase() {
     }
   }
 
+  let targetBuffer = null;
   if (fs.existsSync(DB_PATH)) {
     try {
-      const fileBuffer = fs.readFileSync(DB_PATH);
-      db = new SQL.Database(fileBuffer);
+      targetBuffer = fs.readFileSync(DB_PATH);
     } catch (e) {
       console.warn('Could not read DB_PATH:', e.message);
-      db = new SQL.Database();
     }
   } else if (bundled) {
     try {
-      const fileBuffer = fs.readFileSync(bundled);
-      db = new SQL.Database(fileBuffer);
+      targetBuffer = fs.readFileSync(bundled);
     } catch (e) {
       console.warn('Could not read bundled DB:', e.message);
-      db = new SQL.Database();
     }
+  }
+
+  // Fallback to embedded default database if no file is present
+  if (!targetBuffer) {
+    try {
+      const defaultB64 = require('./defaultDb');
+      targetBuffer = Buffer.from(defaultB64, 'base64');
+      if (isServerless) {
+        try {
+          fs.writeFileSync(DB_PATH, targetBuffer);
+        } catch (e) {
+          // ignore
+        }
+      }
+    } catch (e) {
+      console.warn('Could not load embedded default database:', e.message);
+    }
+  }
+
+  if (targetBuffer) {
+    db = new SQL.Database(targetBuffer);
   } else {
     db = new SQL.Database();
   }
