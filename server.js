@@ -78,8 +78,9 @@ app.use('/api/digital-doctor', doctorRoutes);
 
 // Mount Presco Tab Bedside PWA
 app.use('/pwa', pwaRoutes);
-app.get('/tab', (req, res) => res.redirect('/pwa/ipd'));
-app.get('/cms/tab', (req, res) => res.redirect('/pwa/ipd'));
+app.get('/tab', (req, res) => res.redirect('/cms/digital-nursing'));
+app.get('/pwa', (req, res) => res.redirect('/cms/digital-nursing'));
+app.get('/cms/tab', (req, res) => res.redirect('/cms/digital-nursing'));
 
 // Error template route
 app.use((req, res, next) => {

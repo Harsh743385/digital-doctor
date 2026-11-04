@@ -3,8 +3,9 @@ const router = express.Router();
 const pwaController = require('../controllers/pwaController');
 const { requireAuth } = require('../middleware/auth');
 
-// PWA Shell
-router.get('/ipd', requireAuth, pwaController.renderTab);
+// PWA Shell: Redirect directly to Digital Nursing
+router.get(['/', '/ipd', '/tab'], (req, res) => res.redirect('/cms/digital-nursing'));
+router.get('/raw', requireAuth, pwaController.renderTab);
 
 // PWA Backing APIs (Relative to /pwa/)
 router.get('/api/me', pwaController.getMe);
