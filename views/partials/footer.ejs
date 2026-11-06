@@ -1,3 +1,24 @@
+<% if (typeof currentPath !== 'undefined' && currentPath !== '/login') { %>
+<footer class="presco-site-footer mt-auto py-3" style="border-top:1px solid #e2e8f0;background:#ffffff;margin-top:50px;">
+  <div class="container d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
+    <div class="d-flex align-items-center gap-2">
+      <div style="width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--teal),var(--teal-d));color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 6px rgba(20,184,166,0.25);">
+        <i class="fas fa-heartbeat"></i>
+      </div>
+      <span style="font-size:12.5px;color:#334155;font-weight:700;">Presco Clinical EMR</span>
+      <span style="font-size:11.5px;color:#94a3b8;">· &copy; <%= new Date().getFullYear() %> Anand Surgical Hospital Pvt. Ltd.</span>
+    </div>
+
+    <!-- Made by Harsh Badge -->
+    <div class="harsh-signature-badge" style="display:inline-flex;align-items:center;gap:8px;padding:6px 16px;background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);color:#f8fafc;border-radius:999px;font-size:12px;font-weight:600;box-shadow:0 4px 12px rgba(15,23,42,0.12);border:1px solid rgba(255,255,255,0.08);letter-spacing:0.2px;">
+      <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 8px #10b981;"></span>
+      <span>Crafted with <i class="fas fa-heart" style="color:#f43f5e;font-size:10px;margin:0 2px;"></i> by <strong style="background:linear-gradient(90deg,#38bdf8,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:800;letter-spacing:0.4px;">Harsh</strong></span>
+      <span style="background:rgba(255,255,255,0.15);padding:1px 6px;border-radius:4px;font-size:9.5px;text-transform:uppercase;letter-spacing:0.5px;color:#93c5fd;font-weight:700;">Author</span>
+    </div>
+  </div>
+</footer>
+<% } %>
+
 <!-- Vendor Scripts (Fast Edge CDNs) -->
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>

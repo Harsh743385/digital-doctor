@@ -93,7 +93,25 @@ html = html.replace(patientBannerSearch, enhancedPatientBanner);
 // 8. Make sure all pills are visible (remove display:none on nurseTabs items)
 html = html.replace(/<li style="display:\s*none;"><div class="pill"/g, '<li><div class="pill"');
 
+// 9. Inject Made by Harsh footer before the last </div>
+const lastDivIdx = html.lastIndexOf('</div>');
+if (lastDivIdx !== -1) {
+  const footerHtml = `
+  <!-- Made by Harsh Copyright Banner -->
+  <div class="text-center py-4 mt-4" style="border-top: 1px solid var(--grey-200); background: #ffffff;">
+    <div style="display:inline-flex;align-items:center;gap:10px;padding:7px 20px;background:#f8fafc;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,0.04);border:1px solid #e2e8f0;font-size:12.5px;color:#334155;">
+      <i class="fas fa-heartbeat text-teal" style="font-size:14px;color:var(--teal);"></i>
+      <span style="font-weight:600;">Presco Digital Care &copy; <%= new Date().getFullYear() %></span>
+      <span style="color:#cbd5e1;">·</span>
+      <span>Crafted with <i class="fas fa-heart" style="color:#f43f5e;font-size:11px;margin:0 2px;"></i> by <strong style="color:var(--teal-d);font-weight:800;letter-spacing:0.3px;">Harsh</strong></span>
+      <span style="background:linear-gradient(135deg,var(--teal),var(--teal-d));color:#ffffff;border-radius:6px;font-size:10px;padding:2px 7px;font-weight:700;text-transform:uppercase;">Lead Developer</span>
+    </div>
+  </div>
+`;
+  html = html.substring(0, lastDivIdx) + footerHtml + html.substring(lastDivIdx);
+}
+
 // Write to views/nursing/workspace.ejs
 const targetPath = path.join(__dirname, '../views/nursing/workspace.ejs');
 fs.writeFileSync(targetPath, html, 'utf8');
-console.log('views/nursing/workspace.ejs successfully generated without JS leak! Size:', html.length);
+console.log('views/nursing/workspace.ejs successfully generated! Size:', html.length);
